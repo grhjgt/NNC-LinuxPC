@@ -1,0 +1,14 @@
+.\objects\ens1_iic.o: FWLIB\source\ENS1_IIC.c
+.\objects\ens1_iic.o: .\FWLIB\include\ENS1_IIC.h
+.\objects\ens1_iic.o: .\USER\my_header.h
+.\objects\ens1_iic.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\ens1_iic.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\ens1_iic.o: .\CORE\INCLUDE\CMSDK_CM0.h
+.\objects\ens1_iic.o: .\CORE\INCLUDE\core_cm0.h
+.\objects\ens1_iic.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\ens1_iic.o: .\CORE\INCLUDE\core_cmInstr.h
+.\objects\ens1_iic.o: .\CORE\INCLUDE\core_cmFunc.h
+.\objects\ens1_iic.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
+.\objects\ens1_iic.o: .\FWLIB\include\ens1_uart.h
+.\objects\ens1_iic.o: .\FWLIB\include\ENS1_CLOCK.h
+.\objects\ens1_iic.o: .\FWLIB\include\ENS1_GPIO.h

@@ -1,0 +1,12 @@
+.\objects\ens1_pwm.o: FWLIB\source\ENS1_PWM.c
+.\objects\ens1_pwm.o: .\FWLIB\include\ens1_pwm.h
+.\objects\ens1_pwm.o: .\USER\my_header.h
+.\objects\ens1_pwm.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\ens1_pwm.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\ens1_pwm.o: .\CORE\INCLUDE\CMSDK_CM0.h
+.\objects\ens1_pwm.o: .\CORE\INCLUDE\core_cm0.h
+.\objects\ens1_pwm.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\ens1_pwm.o: .\CORE\INCLUDE\core_cmInstr.h
+.\objects\ens1_pwm.o: .\CORE\INCLUDE\core_cmFunc.h
+.\objects\ens1_pwm.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
+.\objects\ens1_pwm.o: .\FWLIB\include\ENS1_CLOCK.h

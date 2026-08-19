@@ -1,0 +1,11 @@
+.\objects\ens1_exti.o: FWLIB\source\ENS1_EXTI.c
+.\objects\ens1_exti.o: .\FWLIB\include\ENS1_EXTI.h
+.\objects\ens1_exti.o: .\USER\my_header.h
+.\objects\ens1_exti.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\ens1_exti.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\ens1_exti.o: .\CORE\INCLUDE\CMSDK_CM0.h
+.\objects\ens1_exti.o: .\CORE\INCLUDE\core_cm0.h
+.\objects\ens1_exti.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\ens1_exti.o: .\CORE\INCLUDE\core_cmInstr.h
+.\objects\ens1_exti.o: .\CORE\INCLUDE\core_cmFunc.h
+.\objects\ens1_exti.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
