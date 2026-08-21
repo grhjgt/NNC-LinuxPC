@@ -1,9 +1,10 @@
 --cpu Cortex-M0
-".\objects\mian.o"
+".\objects\main.o"
 ".\objects\ens1_uart.o"
 ".\objects\ens1_gpio.o"
 ".\objects\ens1_mtp.o"
 ".\objects\ens1_clock.o"
+".\objects\ens_current_calibration.o"
 ".\objects\retarget.o"
 ".\objects\system_cmsdk_cm0.o"
 ".\objects\startup_cmsdk_cm0.o"

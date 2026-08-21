@@ -1,17 +1,18 @@
 .\objects\ens_current_calibration.o: FWLIB\source\ENS_CURRENT_CALIBRATION.c
 .\objects\ens_current_calibration.o: .\FWLIB\include\ENS_CURRENT_CALIBRATION.h
 .\objects\ens_current_calibration.o: .\USER\my_header.h
-.\objects\ens_current_calibration.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\ens_current_calibration.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\ens_current_calibration.o: E:\Keil 5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\ens_current_calibration.o: E:\Keil 5\ARM\ARMCC\Bin\..\include\math.h
 .\objects\ens_current_calibration.o: .\CORE\INCLUDE\CMSDK_CM0.h
 .\objects\ens_current_calibration.o: .\CORE\INCLUDE\core_cm0.h
-.\objects\ens_current_calibration.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\ens_current_calibration.o: E:\Keil 5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\ens_current_calibration.o: .\CORE\INCLUDE\core_cmInstr.h
 .\objects\ens_current_calibration.o: .\CORE\INCLUDE\core_cmFunc.h
 .\objects\ens_current_calibration.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
 .\objects\ens_current_calibration.o: .\FWLIB\include\ENS1_TIMER.h
 .\objects\ens_current_calibration.o: .\FWLIB\include\ENS1_MTP.h
-.\objects\ens_current_calibration.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
-.\objects\ens_current_calibration.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\ens_current_calibration.o: .\USER\ENS001_CONFIG.h
+.\objects\ens_current_calibration.o: E:\Keil 5\ARM\ARMCC\Bin\..\include\stdlib.h
+.\objects\ens_current_calibration.o: E:\Keil 5\ARM\ARMCC\Bin\..\include\string.h
 .\objects\ens_current_calibration.o: .\FWLIB\include\ENS1_UART.h
 .\objects\ens_current_calibration.o: .\FWLIB\include\ENS1_CLOCK.h

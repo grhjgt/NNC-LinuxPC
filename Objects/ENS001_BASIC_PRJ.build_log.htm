@@ -22,13 +22,20 @@ Dialog DLL:      TARMCM1.DLL V1.14.6.0
  
 <h2>Project:</h2>
 D:\Code\3¡¢ENS_UART_DEMO_run_ok_20260715\3¡¢ENS_UART_DEMO_run_ok_20260715\ENS001_BASIC_PRJ.uvprojx
-Project File Date:  08/05/2026
+Project File Date:  08/21/2026
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 5 (build 528)', folder: 'E:\Keil 5\ARM\ARMCC\Bin'
 Build target 'ENS001_BASIC_PRJ'
+compiling main.c...
+USER\main.c(288): warning:  #223-D: function "cal_output_current_mA" declared implicitly
+  		cal_output_current_mA(CHANNEL_0, mA, SINE_WAVE, unit_t, isel_t);
+USER\main.c: 1 warning, 0 errors
+linking...
+Program Size: Code=11744 RO-data=912 RW-data=532 ZI-data=1668  
+FromELF: creating hex file...
 After Build - User command #2: E:\Keil 5\\ARM\ARMCC\bin\fromelf.exe --bin --output=Bin\ENS001_BASIC_PRJ.bin .\Objects\ENS001_BASIC_PRJ.axf
-".\Objects\ENS001_BASIC_PRJ.axf" - 0 Error(s), 0 Warning(s).
+".\Objects\ENS001_BASIC_PRJ.axf" - 0 Error(s), 1 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -41,7 +48,7 @@ Package Vendor: ARM
   E:/Keil 5/ARM/PACK/ARM/Cortex_DFP/1.1.0/Device/ARMCM0/Include
 
 <h2>Collection of Component Files used:</h2>
-Build Time Elapsed:  00:00:00
+Build Time Elapsed:  00:00:01
 </pre>
 </body>
 </html>

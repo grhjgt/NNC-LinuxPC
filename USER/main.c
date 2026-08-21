@@ -4,88 +4,89 @@
 *Author:      
 *Version:     V1.0 
 *Date:        2024-11-                  
-*Description:   UART1´òÓ¡ / ½ÓÊÕÊı¾İ
+*Description:   UART1? / 
 *Function List: 
    
 History: 
 1.V1.0
 Date:          
 Author: 
-Modification: ³õ°æ
+Modification: 
 
-Ö»ÓĞÈ«¹¦ÄÜ¿ª·¢°å¾ß±¸UART0ºÍUART1£¬Ë«Í¨µÀºÍËÄÍ¨µÀ¿ª·¢°åÖ»ÓĞUART1,GPIO12--RX,GPIO13--TX
+????UART0UART1????UART1,GPIO12--RX,GPIO13--TX
 
-½á¹¹Ìå¶¨ÒåÏêÇé
-´®¿ÚFIFO½á¹¹Ìå¶¨Òå
+?å¶¨
+FIFO?å¶¨
 typedef struct uart_fifo{
-	uartRcvTrigger  level;  ½ÓÊÕFIDO´¥·¢µçÆ½µÄÊı¾İÊıÁ¿£¬1£¬4£¬8£¬14bytes
-	bool DMA_Enable  ;		DMAÊ¹ÄÜ£¿
-	bool FIFO_Enable ;		FIFOÊ¹ÄÜ
+	uartRcvTrigger  level;  FIDO?14814bytes
+	bool DMA_Enable  ;		DMA??
+	bool FIFO_Enable ;		FIFO?
 }UART_FifoStructrue;		
 
-´®¿Ú³õÊ¼»¯½á¹¹Ìå¶¨Òå
+???å¶¨
 typedef struct uart_para{		
-	 uint32_t UART_BaudRate;				´®¿Ú²¨ÌØÂÊ
-	 bool UART_HardwareFlowControl;		    Ó²¼şÁ÷¿ØÊÇ·ñ¿ªÆô
-	 UART_FifoStructrue*  FifoSetting ;		´®¿ÚFIFO½á¹¹ÌåÖ¸Õë
+	 uint32_t UART_BaudRate;				?
+	 bool UART_HardwareFlowControl;		    ??
+	 UART_FifoStructrue*  FifoSetting ;		FIFO??
 	 
-	 UART_StopLen stop_len;					Í£Ö¹Î»
-	 UART_WordLen Word_len;					Êı¾İÎ»
-	 UART_Stick_EN Stick_EN;				¹Ì¶¨ÆæÅ¼Ğ£ÑéÆôÓÃ
-	 UART_Even_EN Even_EN;					ÔñÆæÅ¼Ğ£ÑéÑ¡Ôñ
-	 UART_Parity_EN Parity_EN;				Ê¹ÄÜÆæÅ¼Ğ£Ñé
+	 UART_StopLen stop_len;					??Î»
+	 UART_WordLen Word_len;					Î»
+	 UART_Stick_EN Stick_EN;				??Ğ£
+	 UART_Even_EN Even_EN;					?Ğ£?
+	 UART_Parity_EN Parity_EN;				??Ğ£
 }UART_InitStructure;
 
-Í£Ö¹Î»ÅäÖÃ£ºÍ£Ö¹Î»ÓĞÈıÖÖÑ¡Ôñ£¬·Ö±ğÎª1¸öÍ£Ö¹Î»£¬1.5¸öÍ£Ö¹Î»£¬2¸öÍ£Ö¹Î»
-Í£Ö¹Î»ÓÉUART_InitStructure½á¹¹ÌåÏÂµÄstop_lenºÍWord_len¹²Í¬¿ØÖÆ
-1¡¢µ±stop_lenÎªStopLen_1Ê±£¬Í£Ö¹Î»Îª1£¬ÓëWord_lenÎŞ¹Ø
-2¡¢µ±stop_lenÎªStopLen_Other£¬Word_lenÎªWordLen_5Ê±£¬Í£Ö¹Î»Îª1.5Î»
-3¡¢µ±stop_lenÎªStopLen_Other£¬Word_len²»ÎªWordLen_5Ê±£¬Í£Ö¹Î»Îª2Î»
+??Î»???Î»????1??Î»1.5??Î»2??Î»
+??Î»UART_InitStructure??stop_lenWord_len?
+1stop_len?StopLen_1???Î»?1Word_len?
+2stop_len?StopLen_OtherWord_len?WordLen_5???Î»?1.5Î»
+3stop_len?StopLen_OtherWord_len?WordLen_5???Î»?2Î»
 
 
-Ğ£ÑéÎ»ÅäÖÃ£ºĞ£ÑéÎ»¹²ÓĞÎåÖÖÑ¡Ôñ¡£·Ö±ğÎªÎŞĞ£Ñé£¨None£©,ÆæĞ£Ñé£¨Odd£©£¬Å¼Ğ£Ñé£¨Even£©£¬¹Ì¶¨1Ğ£Ñé£¨Mark£©£¬¹Ì¶¨0Ğ£Ñé£¨Space£©
-Ğ£ÑéÎ»ÓÉUART_InitStructure½á¹¹ÌåÏÂµÄStick_EN,Even_ENºÍParity_ENÈı¸ö²ÎÊı¹²Í¬¿ØÖÆ
-1¡¢µ±Parity_ENÎªParity_RESETÊ±£¬½ûÓÃÆæÅ¼Ğ£ÑéÎ»
-2¡¢µ±Parity_ENÎªParity_SET£¬Stick_ENÎªStick_RESET£¬Even_ENÎªOdd_SETÊ±£¬ÆôÓÃÆæĞ£ÑéÎ»
-3¡¢µ±Parity_ENÎªParity_SET£¬Stick_ENÎªStick_RESET£¬Even_ENÎªEven_SET£¬ÆôÓÃÅ¼Ğ£ÑéÎ»
-4¡¢µ±Parity_ENÎªParity_SET£¬Stick_ENÎªStick_SET£¬Even_ENÎªOdd_SET£¬ÆôÓÃ¹Ì¶¨1Ğ£ÑéÎ»
-5¡¢µ±Parity_ENÎªParity_SET£¬Stick_ENÎªStick_SET£¬Even_ENÎªEven_SET£¬ÆôÓÃ¹Ì¶¨0Ğ£ÑéÎ»
+Ğ£Î»?Ğ£Î»????Ğ£é£¨None,Ğ£é£¨Odd?Ğ£é£¨Even?1Ğ£é£¨Mark?0Ğ£é£¨Space
+Ğ£Î»UART_InitStructure??Stick_EN,Even_ENParity_EN?
+1Parity_EN?Parity_RESET??Ğ£Î»
+2Parity_EN?Parity_SETStick_EN?Stick_RESETEven_EN?Odd_SET?Ğ£Î»
+3Parity_EN?Parity_SETStick_EN?Stick_RESETEven_EN?Even_SET?Ğ£Î»
+4Parity_EN?Parity_SETStick_EN?Stick_SETEven_EN?Odd_SETÃ¹?1Ğ£Î»
+5Parity_EN?Parity_SETStick_EN?Stick_SETEven_EN?Even_SETÃ¹?0Ğ£Î»
 
 
-¹ØÓÚ²¨ÌØÂÊÅäÖÃÊ¹ÓÃµ½µÄ
+???
 divisor_value = (uint16_t)((uint32_t)(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode) - 1);
 CMSDK_UART->DLL = (uint8_t)(divisor_value & 0x00FF);
 CMSDK_UART->DLH = (uint8_t)((divisor_value & 0xFF00)>>8);
-¿ÉÍ¨¹ıÒÔÏÂ·½Ê½Àí½â£º
-1¡¢²¨ÌØÂÊµÄº¬ÒåÎª1ÃëÄÚ´«ÊäÎ»µÄ¸öÊı£¬Èç115200²¨ÌØÂÊ£¬´ú±í1ÃëÄÚ¿ÉÒÔ´«Êä115200¸öÎ»£¬Ã¿¸öÎ»µÄ´«ÊäÊ±¼äÎª1/115200Ãë
+?Â·??
+1???1?Î»?115200?1??115200Î»?Î»???1/115200
 
-2¡¢ÍâÉèÖ÷ÆµµÄº¬ÒåÎª1ÃëÄÚµÄÊ±ÖÓ¸öÊı£¬Èç32MHzµÄÖ÷Æµ£¬´ú±í1ÃëÄÚ·¢Éú32M¸öÊ±ÖÓÖÜÆÚ£¬Ã¿¸öÊ±ÖÓÖÜÆÚÊ±¼äÎª1/32000000Ãë
+2???1???32MHz?1?32M??????1/32000000
 
-3¡¢¶Ô´®¿ÚÉèÖÃ²¨ÌØÂÊ¼´ÎªÉèÖÃ¶ÔÓ¦²¨ÌØÂÊÃ¿¸öÎ»´«ÊäÊ±¼äÕ¼ÍâÉèÖ÷ÆµµÄ¶àÉÙ¸öÊ±ÖÓÖÜÆÚ£¬²¢°ÑÕâ¸öÖµ¸ß°ËÎ»´æ·ÅÓÚCMSDK_UART->DLH£¬µÍ°ËÎ»´æ·ÅÓÚCMSDK_UART->DLLÖĞ¡£
+3?Ã²?????Î»?????????Î»CMSDK_UART->DLH?Î»CMSDK_UART->DLLĞ¡
 
-4¡¢overSamp_mode£¬ÓÉOSM_SEL¼Ä´æÆ÷¾ö¶¨£¬0Ê±Îª13£¬1Ê±Îª16£¬¿ÉÀí½âÎª¶ÔÍâÉèÖ÷Æµ½øĞĞµÚÒ»´Î·ÖÆµµÄ·ÖÆµÏµÊı£¬APB_Clock_FreqÎªÍâÉèÖ÷Æµ£¬uart_paraX->UART_BaudRateÎªÅäÖÃ²¨ÌØÂÊ
+4overSamp_modeOSM_SEL?0??131??16??Ğµ?Î·????APB_Clock_Freq??uart_paraX->UART_BaudRate?Ã²
 
-5¡¢ËùÒÔ(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode) - 1)ÖĞ£¨APB_Clock_Freq / overSamp_mode£©¿ÉÒÔ¿´×÷Ê×ÏÈ¶ÔÍâÉèÊ±ÖÓ½øĞĞµÚÒ»´Î·ÖÆµ£¬
-½á¹ûÎª´®¿ÚÊµ¼ÊÖ÷Æµ£¬´ËÊ±´®¿ÚÊ±ÖÓÎª1Ãë£¨APB_Clock_Freq / overSamp_mode£©¸öÊ±ÖÓÖÜÆÚ£¬°ÑËü³ıÒÔ²¨ÌØÂÊ£¬¼´¿ÉËã³ö¸Ã²¨ÌØÂÊÅäÖÃÊ±Ò»¸öÎ»´«ÊäÊ±¼äĞèÒª¶àÉÙ¸ö´®¿ÚÖ÷ÆµÊ±ÖÓÖÜÆÚ£¬
-¼´(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)£¬ÇÒ¼Ä´æÆ÷ÎªµµÎ»µ÷½Ú£¬ÖµÎª0Ê±ÎªµÚ1µµ£¬
-ËùÒÔµÚ(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)µµ£¬ĞèÒªÔÚ¼Ä´æÆ÷ÖĞĞ´Èë(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)-1¡£
+5(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode) - 1)Ğ£APB_Clock_Freq / overSamp_mode????Ğµ?Î·?
+??????1?APB_Clock_Freq / overSamp_mode????Ã²??Î»??????
+(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)???Î»???0??1
+?(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)???Ğ´(APB_Clock_Freq / uart_paraX->UART_BaudRate / overSamp_mode)-1
 
-6¡¢ÎÊÌâ£ºÓÉÓÚ¼ÆËã³öÀ´µÄÊ±ÖÓÊı½á¹ûºÜÄÑÊÇÕûÊı£¬ÇÒÇ¿ÖÆ×ª»»ÀàĞÍÈ¡ÕûµÄÔ­Òò£¬»áÔì³ÉĞ©ĞíÎó²î£¬Èç¼ÆËã³öÀ´µÄ½á¹ûÎª15.9£¬È¡Õûºó»áµÃµ½15£¬Ôì³ÉÎó²î£¬Ê¹´®¿ÚÊµ¼Ê²¨ÌØÂÊÓëÉèÖÃ²¨ÌØÂÊÎó²î½Ï´ó£¬
-Ôì³É´íÎó£¬ËùÒÔµ±·¢ÏÖ´®¿Ú²¨ÌØÂÊÎó²î½Ï´óÊ±£¬ÇëÔÚ¹«Ê½¼ÆËã½áÊøºó³¢ÊÔ¼ÓÒ»»ò¼õÒ»£¬ÔÙ½øĞĞ³¢ÊÔ£¬ÌôÑ¡Ò»¸ö¸ü¼ÓÓÅĞãµÄ½á¹û¡£
+6????????Ğ©???15.9??15????Ã²?
+????????????Ğ³????
 
-7¡¢¾ÖÏŞ£¬µ±ÍâÉèÖ÷Æµ½ÏµÍ£¬ÇÒ²¨ÌØÂÊ½Ï¸ßÊ±£¬²¨ÌØÂÊÎó²î»áºÜ´ó£¬ÇÒÎŞ·¨µ÷Õû£¬Àı£ºÖ÷Æµ4M£¬²¨ÌØÂÊÉèÖÃ115200£¬Ôò¼ÆËã½á¹ûÎª£º4000000/115200/16-1=1.17 ,È¡ÕûºóÖµÎª1£¬
-´ËÊ±ÎŞ·¨¶ÔÖµ½øĞĞ¼ÓÒ»»ò¼õÒ»²Ù×÷£¨ÖµÔ½Ğ¡£¬µ÷ÕûÖµ¶ÔÊµ¼Ê²¨ÌØÂÊÓ°ÏìÔ½´ó£©£¬ËùÒÔµ±Ê¹ÓÃ½ÏµÍÖ÷ÆµÊ±£¬Ê¹ÓÃµÍ²¨ÌØÂÊ¿ÉÒÔÓĞĞ§Ìá¸ß´®¿ÚÍ¨ĞÅ¿É¿¿ĞÔ¡£
+7???????????4M115200?4000000/115200/16-1=1.17 ,???1
+???Ğ¼????Ğ¡????????????????Ğ§?????
 
 */  
 
 #include "my_header.h"
 #include "ENS1_MTP.h"
+#include "ENS_CURRENT_CALIBRATION.h"
 #include "ENS1_CLOCK.h"
 #include "ENS1_ANAC.h"
 #include "ENS1_UART.h"
 
-uint32_t GetParamNumber=0;//»ñÈ¡FIFOÊı¾İ»º´æÊıÁ¿
-uint8_t Get_Data=0;//»ñÈ¡²ÎÊı
+uint32_t GetParamNumber=0;//?FIFO?
+uint8_t Get_Data=0;//?
 
 uint8_t rev_buf[16];
 uint8_t rev_len = 0;
@@ -108,6 +109,7 @@ void Delay_268ms( uint16_t time_ms )
 		for( j=0;j<1001;j++ );
   }
 }
+// CRC8Ğ£
 static const uint8_t crc8_table[256] = {
     0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15, 0x38, 0x3F, 0x36, 0x31,
     0x24, 0x23, 0x2A, 0x2D, 0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
@@ -143,7 +145,8 @@ uint8_t crc8_calc(const uint8_t *data, size_t len) {
     
     return crc;  
 }
-// ÕıÏÒ²¨Êı×é
+
+// ?
 int sine_data[64] =  {0x0c, 0x18, 0x25, 0x31, 0x3d, 0x4a, 0x55,
 											0x61, 0x6d, 0x78, 0x83, 0x8d, 0x97, 0xa1, 
 											0xab, 0xb4, 0xbc, 0xc5, 0xcc, 0xd4, 0xda, 0xe0, 
@@ -164,19 +167,19 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 	  float freq = 0;
     //puts("\nDRIVER A SINE TEST\n");
 
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_REST_T_REG = 0x00000000;   //ËÀÇøÊ±¼ä
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_SILENT_T_REG = 0;  //¾²Ä¬Ê±¼ä
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_REST_T_REG = 0x00000000;   //?
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_SILENT_T_REG = 0;  //??
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CLK_FREQ_REG = 0x00000020;     //32MHZ ==PCLK
 	  freq = (500.00/g_freq)*1000.00;
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = freq;   ; //200us  //Õı°ëÖáÂö¿í
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = freq;  ; //500us  //¸º°ë
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CONFIG_REG = 0x0000004A; //bit 0:rest enable  £¬ Õı°ëÖÜºÍ¸º°ëÖáÖĞ¼äµÄ ĞİÏ¢Ê±¼ä 
-															  //bit1:negative enable  £¬ ¸º°ëÖÜÆÚ·¢ÉúÊ¹ÄÜ£¬Èç¹û²»Ê¹ÄÜ£¬ÔòÃ»ÓĞ¸º°ëÖáµÄ²¨ĞÎ
-	                                                          //bit2: silent enable   £¬ ¸º°ëÖÜÆÚ½áÊøºóµÄ¾²Ä¬Ê±¼ä
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = freq;   ; //200us  //
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = freq;  ; //500us  //
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CONFIG_REG = 0x0000004A; //bit 0:rest enable   ??Ğ¼ ?? 
+															  //bit1:negative enable   ??????Ğ¸?
+	                                                          //bit2: silent enable    ????
                                                               //bit3: source B enable 
-															  //bit4: alternating the positive side ,Õı¼«½»Ìæ£¬
-                                                              //bit5: continue mode   £¬
-	                                                          //bit6: multi-electrode £¬
+															  //bit4: alternating the positive side ,æ£¬
+                                                              //bit5: continue mode   
+	                                                          //bit6: multi-electrode 
 	Current_units=4*(units+1)-1;
 	Current_units = 1;
 	if (CMSDK_WAVEGEN_DRVA==WAVE_GEN_DRVA_BLK0){
@@ -187,20 +190,27 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 	}
 	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ISEL_REG=(Current_units&(0x7<<3))>>3; // high 3 bit for units of current
 
+    // ã€ä¿®å¤ BUGã€‘: å¯åŠ¨æ³¢å½¢æ—¶ï¼Œå¿…é¡»æŠŠå½“å‰ RAM ä¸­å·²æ ¡å‡†çš„ unit_current æ¯”ä¾‹å åŠ è¿›å»
+    float unit_val = (unit_current[0] > 0) ? (float)unit_current[0] : 33.0f;
+    float scale_factor = 0.6455f * (g_current / 20.0f) * (unit_val / 33.0f);
+
     for(int i=0; i<64; i++){
        	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i; 
-       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*0.6455 *(g_current/20) ) ;  //ÃèµãÊı×é£¬¸ù¾İÊı×éÖĞµÄµãÃè»æÕı°ëÖÜÆÚµÄ²¨ĞÎ
+       	int val = (int)( (float)sine_data[i] * scale_factor );
+        if (val > 255) val = 255;
+        if (val < 0) val = 0;
+       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = val;
     }
    
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_LIM_REG = 0x00000000;//  ÎŞ½»Ìæ 
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_SILENT_LIM_REG = 0x00000000; // ½»Ìæºó¾²Ä¬µÄÊ±ÖÓÊı¡£ÔÚÕâÖÖÇé¿öÏÂ£¬Çı¶¯Æ÷bÁ¬Ğø½»Ìæ
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_DELAY_LIM_REG = 0x00000000;  // ÑÓ³ÙÊ±ÖÓÊı
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_SCALE_REG = 0x00000001;  //±¶³ËÕı°ëÖÜÆÚ·ùÖµ£¬Èç³¬¹ı255£¬Ôò´Ó0¿ªÊ¼Ôö³¤
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_OFFSET_REG = 0x00000000; //Æ«ÒÆÕı°ëÖÜÆÚ·ùÖµ£¬Èç³¬¹ı255£¬Ôò´Ó0¿ªÊ¼Ôö³¤£¬
-                                                                  //ÈçÕı°ëÖÜÆÚ·ùÖµÎª250£¬´Ë´¦ÉèÖÃÎª10£¬Ôò¸º°ëÖÜÆÚ·ùÖµÎª5 £¡£¡£¡
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_LIM_REG = 0x00000000;//  ? 
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_SILENT_LIM_REG = 0x00000000; // ???b
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_DELAY_LIM_REG = 0x00000000;  // ??
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_SCALE_REG = 0x00000001;  //??ç³¬2550?
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_OFFSET_REG = 0x00000000; //???ç³¬2550?
+                                                                  //???250??10????5 
 		
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_INT_REG = 0x0;//  interrupt register set to 0
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0x00000001; //Ê¹ÄÜ driver
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0x00000001; //? driver
 
     /* Generate return value */
     if (err_code != 0) {
@@ -219,11 +229,11 @@ void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 	else if(CMSDK_WAVEGEN_DRVA==WAVE_GEN_DRVA_BLK1){
 		WAVE_GEN_DRVC_BLK6->WAVE_GEN_DRV_ISEL_REG=0; // BLK6 driver C is for pair 1, low 3 bit for unit of current
 	}
-	CMSDK_WAVEGEN_DRVA ->WAVE_GEN_DRV_ISEL_REG = 0;  //·¶Î§ 0x00 - 0x07
+	CMSDK_WAVEGEN_DRVA ->WAVE_GEN_DRV_ISEL_REG = 0;  //Î§ 0x00 - 0x07
 	
 	for(int i=0; i<64; i++){
        	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i; 
-       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = 0; //×î´ó0xff
+       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = 0; //0xff
     }
 
 
@@ -231,7 +241,7 @@ void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
  void Delay_ms( uint16_t time_ms )
 {
   uint16_t i,j;
-	if(time_ms<5000) //·À´ô´¦Àí£¬·ÀÖ¹µ÷ÓÃÕß´«Èë¸üĞ¡µÄÊ±¼äµ¼ÖÂÎŞ·¨¼°Ê±ÏÂÔØ³ÌĞò¡£
+	if(time_ms<5000) //??Ğ¡?????
 	{
 		time_ms=5000;
 	}
@@ -242,36 +252,141 @@ void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
   }
 }
 
-//Íâ²¿Ê±ÖÓÉèÖÃ
+//??
  void SysHseSet(void)
 {
 		
-		CMSDK_GPIO->IE = (CMSDK_GPIO->IE & ~(0x01ul << 0)) | (0x01 << 0); //GPIO0ÊäÈëÄ£Ê½
-		CMSDK_GPIO->ALTFL = (CMSDK_GPIO->ALTFL & ~(0x03ul << 0)) | (0x02 << 0); //GPIO0¸´ÓÃÎªHSE_CLK
-		CMSDK_SYSCON->CLK_CFG  = (CMSDK_SYSCON->CLK_CFG & ~CMSDK_SYSCON_SYSCLK_SEL_Msk) | (0x1 << CMSDK_SYSCON_SYSCLK_SEL_Pos); // Ñ¡ÖĞHSE×÷ÎªÊ±ÖÓ
-		while (((CMSDK_SYSCON->CLK_CFG & CMSDK_SYSCON_SYSCLK_SWSTS_Msk) >> CMSDK_SYSCON_SYSCLK_SWSTS_Pos) != 0x01) { }       //µÈ´ıHSEÆğÕñÍê±Ï£¬Õâ»áµÈ´ıÍâ²¿¾§ÕñÒı½Å½ÓÈëGPIO0
+		CMSDK_GPIO->IE = (CMSDK_GPIO->IE & ~(0x01ul << 0)) | (0x01 << 0); //GPIO0??
+		CMSDK_GPIO->ALTFL = (CMSDK_GPIO->ALTFL & ~(0x03ul << 0)) | (0x02 << 0); //GPIO0?HSE_CLK
+		CMSDK_SYSCON->CLK_CFG  = (CMSDK_SYSCON->CLK_CFG & ~CMSDK_SYSCON_SYSCLK_SEL_Msk) | (0x1 << CMSDK_SYSCON_SYSCLK_SEL_Pos); // ?HSE??
+		while (((CMSDK_SYSCON->CLK_CFG & CMSDK_SYSCON_SYSCLK_SWSTS_Msk) >> CMSDK_SYSCON_SYSCLK_SWSTS_Pos) != 0x01) { }       //?HSE????GPIO0
 		CMSDK_SYSCON->HSI_CTRL = (CMSDK_SYSCON->HSI_CTRL & ~CMSDK_SYSCON_HSI_EN_Msk); //HSI OSC OFF
 }
 
-//ÇĞµ½Íâ²¿Ê±ÖÓ¹¦ÄÜº¯Êı
+//Ğµ????
  void SwitchHseFun(uint8_t aSec)
 {
 
 		if(aSec <5) aSec=5;
 		if(30<aSec) aSec=30;
 		uint32_t aDelayTime = aSec*1000;
-		Delay_ms(aDelayTime);		//µÈ´ı5sºó°ÑGPIO¸´ÓÃÎªHSEÒı½Å	
+		Delay_ms(aDelayTime);		//?5sGPIO?HSE	
 	
 		SysHseSet();
 }
+
+/* 0x04 ç”µæµæ ¡å‡†å¤„ç† (å¤šæ¬¡ RAM é€¼è¿‘ï¼Œä¸å†™å…¥ MTP) */
+static void handle_calibrate_current(void) {
+	uint8_t target_mA = rev_buf[3];
+	uint16_t measured_x100 = ((uint16_t)rev_buf[4] << 8) | rev_buf[5];
+	uint8_t status = 0x00;
+	
+	// ç‰¹æ®ŠæŒ‡ä»¤ï¼štarget_mA == 0xFF ä¸ºè½¯å¤ä½ï¼Œæ¢å¤ RAM ä¸­çš„ unit_current[0] ä¸ºé»˜è®¤ 33uA
+	if (target_mA == 0xFF) {
+		unit_current[0] = CUSTOM_UNIT_CURRENT[0]; // 33uA
+		float mA = (g_current > 0) ? ((float)g_current / 10.0f) : 2.0f;
+		cal_output_current_mA(CHANNEL_0, mA, SINE_WAVE, unit_t, isel_t);
+		
+		send_buf[0] = 0xA5;
+		send_buf[1] = 0x09;
+		send_buf[2] = 0x08;
+		send_buf[3] = 0x04;
+		send_buf[4] = 0x00; // Status 0x00 æˆåŠŸ
+		send_buf[5] = unit_current[0];
+		uint16_t ft = (uint16_t)unit_current[0] * 832;
+		send_buf[6] = (ft >> 8) & 0xFF;
+		send_buf[7] = ft & 0xFF;
+		uint16_t predict_uA = (uint16_t)unit_current[0] * 255 * 832 / 1000;
+		send_buf[8] = (predict_uA >> 8) & 0xFF;
+		send_buf[9] = predict_uA & 0xFF;
+		send_buf[10] = (unit_t[0] & 0x07);
+		send_buf[11] = (isel_t[0][63] & 0xFF);
+		send_buf[12] = crc8_calc(send_buf, 12);
+		send_buf[13] = 0x5A;
+		send_len = 14;
+		for (volatile int c = 0; c < 200; c++);
+		Uart_Send(CMSDK_UART1, send_buf, send_len);
+		return;
+	}
+	
+	// è¾“å…¥æœ‰æ•ˆæ€§æ£€æŸ¥ (target_mA ä»¥ 0.1mA ä¸ºå•ä½ï¼ŒèŒƒå›´ 0.1mA~20.0mA å³ 1~200)
+	if (target_mA < 1 || target_mA > 200 || measured_x100 == 0) {
+		status = 0x01; // NACK å‚æ•°éæ³•
+	} else {
+		// target_mA å•ä½ä¸º 0.1mAï¼Œx10 ç»Ÿä¸€æ¢ç®—ä¸ºä»¥ 0.01mA ä¸ºå•ä½ (ä¾‹ 20 -> 200 å³ 2.00mA)
+		uint32_t I_exp = (uint32_t)target_mA * 10;
+		// measured_x100 å•ä½æœ¬èº«å³ä¸º 0.01mA (ä¾‹ 215 å³ 2.15mA)
+		uint32_t I_act = (uint32_t)measured_x100;
+		uint32_t old_unit = (uint32_t)unit_current[0];
+		// å››èˆäº”å…¥é€¼è¿‘è®¡ç®—æ–°çš„ unit_current (uA): ç›®æ ‡ I_exp / å®æµ‹ I_act æ¯”ä¾‹è¿›è¡Œæ­£å‘ç¼©æ”¾
+		uint32_t new_unit = (old_unit * I_exp + I_act / 2) / I_act;
+		
+		if (new_unit < 3 || new_unit > 250) {
+			status = 0x01; // NACK è¶…å‡ºåˆç†èŒƒå›´
+		} else {
+			unit_current[0] = (uint8_t)new_unit; // ä»…æ›´æ–° RAM å˜é‡ï¼ä¸å†™å…¥ MTP
+			
+			// åŠ¨æ€åˆ·æ–° WaveGen ç¡¬ä»¶ RAM æç‚¹ (ä¿æŒ DEMO å®˜æ–¹åŸºå‡†ç¼©æ”¾)
+			float target_ratio = (g_current > 0) ? ((float)g_current / 20.0f) : 1.0f;
+			float unit_val = (unit_current[0] > 0) ? (float)unit_current[0] : 33.0f;
+			float scale_factor = 0.6455f * target_ratio * (unit_val / 33.0f);
+			for(int i = 0; i < 64; i++){
+				WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i; 
+				int val = (int)((float)sine_data[i] * scale_factor);
+				if (val > 255) val = 255;
+				if (val < 0) val = 0;
+				WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_REG = val;
+			}
+			status = 0x00; // æˆåŠŸ
+		}
+	}
+	
+	if (status != 0x00) {
+		// NACK 7 å­—èŠ‚çŸ­å¸§
+		send_buf[0] = 0xA5;
+		send_buf[1] = 0x09;
+		send_buf[2] = 0x02;
+		send_buf[3] = 0x04;
+		send_buf[4] = status;
+		send_buf[5] = crc8_calc(send_buf, 5);
+		send_buf[6] = 0x5A;
+		send_len = 7;
+	} else {
+		// æˆåŠŸ 14 å­—èŠ‚é•¿å¸§
+		send_buf[0] = 0xA5;
+		send_buf[1] = 0x09;
+		send_buf[2] = 0x08;
+		send_buf[3] = 0x04;
+		send_buf[4] = 0x00;
+		send_buf[5] = unit_current[0];
+		uint16_t ft = (uint16_t)unit_current[0] * 832;
+		send_buf[6] = (ft >> 8) & 0xFF;
+		send_buf[7] = ft & 0xFF;
+		uint16_t predict_uA = (uint16_t)unit_current[0] * 255 * 832 / 1000;
+		send_buf[8] = (predict_uA >> 8) & 0xFF;
+		send_buf[9] = predict_uA & 0xFF;
+		send_buf[10] = (unit_t[0] & 0x07);
+		send_buf[11] = (isel_t[0][63] & 0xFF);
+		send_buf[12] = crc8_calc(send_buf, 12);
+		send_buf[13] = 0x5A;
+		send_len = 14;
+	}
+	for (volatile int c = 0; c < 200; c++);
+	Uart_Send(CMSDK_UART1, send_buf, send_len);
+}
+
+/* 0x05 ä¸€é”®è½ç›˜ MTP å­˜å‚¨å¤„ç† */
+
+
 int main(){
 	int count;
 	Delay_268ms(1);
 	MTP_init();
 	ClockInit();
+	GET_FT_CURRENT();
 	/*uart*/
 	
-///****************FIFOÖĞ¶ÏÄ£Ê½*************************/
+///****************FIFOĞ¶??*************************/
 //    UART_Init(CMSDK_UART1, &UART1_Init);
 //    UART_ITConfig(CMSDK_UART1, &UART1_ITSet);
 //	char* a = "uartputchar_test";
@@ -284,28 +399,28 @@ int main(){
 ///****************************************************/
 	
 	
-/****************FIFOÂÖÑ¯Ä£Ê½*************************/
+/****************FIFO???*************************/
 //    UART_Init(CMSDK_UART1, &UART1_Init);
-//	//²»Ê¹ÄÜÖĞ¶Ï£¬FIFOÄ¬ÈÏÂÖÑ¯Ä£Ê½
+//	//?Ğ¶?FIFO????
 //	//  UART_ITConfig(CMSDK_UART1, &UART1_ITSet);
 //	while(1)
 //	{  	
-//		//Êı¾İÎ»×¼±¸¾ÍĞ÷
+//		//Î»?
 //		if((CMSDK_UART1->LSR & 0x01)== 0x01)
 //		{
-//			//»ñÈ¡FIFO»º´æÊı¾İÊıÁ¿
+//			//?FIFO
 //			GetParamNumber=(CMSDK_UART1->FSR>>16) & 0x1f;
 //			for(uint32_t i=0;i<GetParamNumber;i++)
 //			{
-//				Get_Data=CMSDK_UART1->RBR;//»ñÈ¡Êı¾İ
-//				UartPutc(CMSDK_UART1,Get_Data);//·µ»ØÊı¾İ
+//				Get_Data=CMSDK_UART1->RBR;//?
+//				UartPutc(CMSDK_UART1,Get_Data);//
 //			}
 //		}
 //	}
 /****************************************************/
 
 
-	uint8_t  data[8] = {1,2,3,4,5,6,7,8};
+	// uint8_t  data[8] = {1,2,3,4,5,6,7,8};
 	
 	UART_Init(CMSDK_UART1, &UART1_Init);
 	
@@ -313,8 +428,8 @@ int main(){
 	
 	
 	CMSDK_SYSCON->APB_CLKEN = 0x4000|0x1000|CMSDK_SYSCON->APB_CLKEN;
-	//Õ¼¿Õ±È£¨1-20%£©=80% ,256·ÖÆµ ,10.5A ,26V,¹Ø±Õ¹ıÎÂ,¹ıÑ¹,¿ªÆô¹ıÁ÷±£»¤   no_Íâ²¿mos	
-		//Õ¼¿Õ±È64·ÖÆµ  10.5A   26V  ¹Ø±Õ¹ıÎÂ   
+	//???1-20%=80% ,256? ,10.5A ,26V,??,?,   no_?mos	
+		//??64?  10.5A   26V  ??   
 		CMSDK_ANAC->BOOST_CTRL =0x77213;
 		CMSDK_ANAC->PMU_CTRL = 0x10;
 	
@@ -409,6 +524,8 @@ int main(){
 					for(count = 0 ; count < 200; count++){;}
 						
 					Uart_Send(CMSDK_UART1,send_buf,send_len);	
+				}else if(rev_buf[1] == 0x04 && rev_buf[2] == 0x03){ // 0x04 RAM ç”µæµæ ¡å‡† (ä¸å†™ MTP)
+					handle_calibrate_current();
 				}
 		    
 			  rev_len = 0;
