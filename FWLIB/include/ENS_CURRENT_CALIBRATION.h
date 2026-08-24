@@ -7,7 +7,7 @@
 
 #define PI 3.1415
 
-extern volatile uint8_t statics_config;  // 通道状态标志位[3:0]
+extern volatile uint8_t statics_config;  // 通锟斤拷状态锟斤拷志位[3:0]
 extern uint8_t  unit_current[4]; 
 extern uint8_t  CUSTOM_UNIT_CURRENT[4];
 extern uint16_t unit_t[4];
@@ -57,7 +57,6 @@ typedef enum ENS_DRV_CONFIG
 	ENABLE_ALL_BIT = 0X7F
 }DRV_CONFIG;
 
-extern uint8_t GET_FT_CURRENT(void);
 extern uint32_t	StimulatorInit(CHANNEL_NUM CHANNEL_X);
 extern uint8_t CURRENT_AMPLITUDE_MODIFY(CHANNEL_NUM CHANNEL_X , float mA);
 extern uint32_t CURRENT_FREQ_MODIFY(CHANNEL_NUM CHANNEL_X , uint32_t freq);

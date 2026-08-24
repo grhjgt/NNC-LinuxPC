@@ -1,5 +1,4 @@
 #include "ENS_CURRENT_CALIBRATION.h"
-#include "ENS1_MTP.h"
 #include "ENS1_TIMER.h"
 #include <math.h>
 
@@ -85,52 +84,12 @@ History:
 	Modification: 
 */ 
 #include "ENS_CURRENT_CALIBRATION.h"
-#include "ENS1_MTP.h"
 #include "ENS1_UART.h"
 #include "ENS1_TIMER.h"
 
 /*-------------------------��ȡ��FT���Ժ��ʵ�ʲ�����Ԫ����ֵ---------------------------*/
-static uint16_t FT_CURRENT_SAVE[4] = {0, 0, 0, 0};     // ���ڱ���� MTP ����������
-uint8_t CUSTOM_UNIT_CURRENT[4] = {33, 33, 33, 33};     // �Զ���Ĭ�ϵ�Ԫ����ֵ
-uint8_t unit_current[4] = {33, 33, 33, 33};            // ����ʵ����Ч�ĵ�Ԫ����ֵ (RAM)
-
-uint8_t GET_FT_CURRENT(void)
-{	
-	uint16_t latest_ft[4] = {0};
-	uint8_t found_valid = 0;
-	
-	// ɨ�� Sector 6 �� 32 ����λ (0x6F00 ~ 0x6FF8)��Ѱ������һ�����̵�У׼����
-	for (int slot = 0; slot < 32; slot++) {
-		uint32_t slot_addr = DATA_SAVE_ADDR + slot * 8;
-		uint16_t f0 = 0, f1 = 0, f2 = 0, f3 = 0;
-		flash_read(slot_addr, &f0);
-		flash_read(slot_addr + 2, &f1);
-		flash_read(slot_addr + 4, &f2);
-		flash_read(slot_addr + 6, &f3);
-		
-		if (f0 != 0 && f0 != 0xFFFF && f1 != 0 && f1 != 0xFFFF) {
-			latest_ft[0] = f0;
-			latest_ft[1] = f1;
-			latest_ft[2] = f2;
-			latest_ft[3] = f3;
-			found_valid = 1;
-		}
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		if (found_valid && latest_ft[i] != 0 && latest_ft[i] != 0xFFFF)
-		{
-			FT_CURRENT_SAVE[i] = latest_ft[i];
-			unit_current[i] = (uint8_t)(latest_ft[i] / 832); // ����ʵ�ʵ�Ԫ���� uA
-		}
-		else 
-		{
-			unit_current[i] = CUSTOM_UNIT_CURRENT[i]; // δУ׼�����̬�����˵�Ĭ�� 33uA
-		}
-	}
-	return 0;
-}
+uint8_t CUSTOM_UNIT_CURRENT[4] = {33, 33, 33, 33};     // 自定义默认单元电流值
+uint8_t unit_current[4] = {33, 33, 33, 33};              // 运行时实际有效的单元电流值 (RAM, 默认33uA, 由HK32 0x04指令更新)
 
 /*-------------------------------------��--------------------------------*/
 //??

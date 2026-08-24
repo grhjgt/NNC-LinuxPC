@@ -1,6 +1,6 @@
 Dependencies for Project 'ENS001_BASIC_PRJ', Target 'ENS001_BASIC_PRJ': (DO NOT MODIFY !)
 CompilerVersion: 5060528::V5.06 update 5 (build 528)::ARMCC
-F (.\USER\main.c)(0x6A881E45)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
+F (.\USER\main.c)(0x6A8BD779)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
 I (USER\my_header.h)(0x6A06F0F8)
 I (E:\Keil 5\ARM\ARMCC\include\stdio.h)(0x588B8344)
 I (E:\Keil 5\ARM\ARMCC\include\math.h)(0x588B8344)
@@ -10,11 +10,11 @@ I (E:\Keil 5\ARM\ARMCC\include\stdint.h)(0x588B8344)
 I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
 I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
 I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (.\FWLIB\include\ENS1_MTP.h)(0x6A87CB8C)
-I (.\USER\ENS001_CONFIG.h)(0x6A87CB8C)
+I (.\FWLIB\include\ENS1_MTP.h)(0x6A8BD464)
+I (.\USER\ENS001_CONFIG.h)(0x6A882133)
 I (E:\Keil 5\ARM\ARMCC\include\stdlib.h)(0x588B8344)
 I (E:\Keil 5\ARM\ARMCC\include\string.h)(0x588B8344)
-I (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A87CB8C)
+I (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A8BD2F3)
 I (.\FWLIB\include\ENS1_TIMER.h)(0x672431F2)
 I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
 I (.\FWLIB\include\ENS1_ANAC.h)(0x6567EDE4)
@@ -46,16 +46,16 @@ I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
 I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
 I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
 I (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)
-F (.\FWLIB\include\ENS1_MTP.h)(0x6A87CB8C)()
-F (.\FWLIB\source\ENS1_MTP.c)(0x6A8817FB)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_mtp.o --omf_browse .\objects\ens1_mtp.crf --depend .\objects\ens1_mtp.d)
-I (.\FWLIB\include\ENS1_MTP.h)(0x6A87CB8C)
+F (.\FWLIB\include\ENS1_MTP.h)(0x6A8BD464)()
+F (.\FWLIB\source\ENS1_MTP.c)(0x6A8BD44F)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_mtp.o --omf_browse .\objects\ens1_mtp.crf --depend .\objects\ens1_mtp.d)
+I (.\FWLIB\include\ENS1_MTP.h)(0x6A8BD464)
 I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
 I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
 I (E:\Keil 5\ARM\ARMCC\include\stdint.h)(0x588B8344)
 I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
 I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
 I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (.\USER\ENS001_CONFIG.h)(0x6A87CB8C)
+I (.\USER\ENS001_CONFIG.h)(0x6A882133)
 I (E:\Keil 5\ARM\ARMCC\include\stdlib.h)(0x588B8344)
 I (E:\Keil 5\ARM\ARMCC\include\string.h)(0x588B8344)
 I (.\USER\my_header.h)(0x6A06F0F8)
@@ -73,9 +73,9 @@ I (E:\Keil 5\ARM\ARMCC\include\stdint.h)(0x588B8344)
 I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
 I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
 I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-F (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A87CB8C)()
-F (.\FWLIB\source\ENS_CURRENT_CALIBRATION.c)(0x6A87F8BD)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\ens_current_calibration.o --omf_browse .\objects\ens_current_calibration.crf --depend .\objects\ens_current_calibration.d)
-I (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A87CB8C)
+F (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A8BD2F3)()
+F (.\FWLIB\source\ENS_CURRENT_CALIBRATION.c)(0x6A8BD41A)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\ens_current_calibration.o --omf_browse .\objects\ens_current_calibration.crf --depend .\objects\ens_current_calibration.d)
+I (.\FWLIB\include\ENS_CURRENT_CALIBRATION.h)(0x6A8BD2F3)
 I (.\USER\my_header.h)(0x6A06F0F8)
 I (E:\Keil 5\ARM\ARMCC\include\stdio.h)(0x588B8344)
 I (E:\Keil 5\ARM\ARMCC\include\math.h)(0x588B8344)
@@ -86,10 +86,6 @@ I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
 I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
 I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
 I (.\FWLIB\include\ENS1_TIMER.h)(0x672431F2)
-I (.\FWLIB\include\ENS1_MTP.h)(0x6A87CB8C)
-I (.\USER\ENS001_CONFIG.h)(0x6A87CB8C)
-I (E:\Keil 5\ARM\ARMCC\include\stdlib.h)(0x588B8344)
-I (E:\Keil 5\ARM\ARMCC\include\string.h)(0x588B8344)
 I (.\FWLIB\include\ENS1_UART.h)(0x672B085E)
 I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
 F (.\FWLIB\source\retarget.c)(0x6565495A)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include"-I"E:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include"-D__UVISION_VERSION="542" -DARMCM0 -DCORTEX_M0-o .\objects\retarget.o --omf_browse .\objects\retarget.crf --depend .\objects\retarget.d)

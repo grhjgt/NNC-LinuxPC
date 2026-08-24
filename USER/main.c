@@ -275,104 +275,51 @@ void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 		SysHseSet();
 }
 
-/* 0x04 电流校准处理 (多次 RAM 逼近，不写入 MTP) */
+/* 0x04 电流校准处理 (多次 RAM 逼近，不写入 MTP)
+   只处理校准计算, 不回发响应帧 (与 start/pause 只发不收风格一致,
+   消除响应帧 0x00 字节信号畸变及 HK32 端轮询/中断竞争问题) */
 static void handle_calibrate_current(void) {
 	uint8_t target_mA = rev_buf[3];
 	uint16_t measured_x100 = ((uint16_t)rev_buf[4] << 8) | rev_buf[5];
-	uint8_t status = 0x00;
-	
+
 	// 特殊指令：target_mA == 0xFF 为软复位，恢复 RAM 中的 unit_current[0] 为默认 33uA
 	if (target_mA == 0xFF) {
 		unit_current[0] = CUSTOM_UNIT_CURRENT[0]; // 33uA
 		float mA = (g_current > 0) ? ((float)g_current / 10.0f) : 2.0f;
 		cal_output_current_mA(CHANNEL_0, mA, SINE_WAVE, unit_t, isel_t);
-		
-		send_buf[0] = 0xA5;
-		send_buf[1] = 0x09;
-		send_buf[2] = 0x08;
-		send_buf[3] = 0x04;
-		send_buf[4] = 0x00; // Status 0x00 成功
-		send_buf[5] = unit_current[0];
-		uint16_t ft = (uint16_t)unit_current[0] * 832;
-		send_buf[6] = (ft >> 8) & 0xFF;
-		send_buf[7] = ft & 0xFF;
-		uint16_t predict_uA = (uint16_t)unit_current[0] * 255 * 832 / 1000;
-		send_buf[8] = (predict_uA >> 8) & 0xFF;
-		send_buf[9] = predict_uA & 0xFF;
-		send_buf[10] = (unit_t[0] & 0x07);
-		send_buf[11] = (isel_t[0][63] & 0xFF);
-		send_buf[12] = crc8_calc(send_buf, 12);
-		send_buf[13] = 0x5A;
-		send_len = 14;
-		for (volatile int c = 0; c < 200; c++);
-		Uart_Send(CMSDK_UART1, send_buf, send_len);
 		return;
 	}
-	
+
 	// 输入有效性检查 (target_mA 以 0.1mA 为单位，范围 0.1mA~20.0mA 即 1~200)
 	if (target_mA < 1 || target_mA > 200 || measured_x100 == 0) {
-		status = 0x01; // NACK 参数非法
-	} else {
-		// target_mA 单位为 0.1mA，x10 统一换算为以 0.01mA 为单位 (例 20 -> 200 即 2.00mA)
-		uint32_t I_exp = (uint32_t)target_mA * 10;
-		// measured_x100 单位本身即为 0.01mA (例 215 即 2.15mA)
-		uint32_t I_act = (uint32_t)measured_x100;
-		uint32_t old_unit = (uint32_t)unit_current[0];
-		// 四舍五入逼近计算新的 unit_current (uA): 目标 I_exp / 实测 I_act 比例进行正向缩放
-		uint32_t new_unit = (old_unit * I_exp + I_act / 2) / I_act;
-		
-		if (new_unit < 3 || new_unit > 250) {
-			status = 0x01; // NACK 超出合理范围
-		} else {
-			unit_current[0] = (uint8_t)new_unit; // 仅更新 RAM 变量！不写入 MTP
-			
-			// 动态刷新 WaveGen 硬件 RAM 描点 (保持 DEMO 官方基准缩放)
-			float target_ratio = (g_current > 0) ? ((float)g_current / 20.0f) : 1.0f;
-			float unit_val = (unit_current[0] > 0) ? (float)unit_current[0] : 33.0f;
-			float scale_factor = 0.6455f * target_ratio * (unit_val / 33.0f);
-			for(int i = 0; i < 64; i++){
-				WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i; 
-				int val = (int)((float)sine_data[i] * scale_factor);
-				if (val > 255) val = 255;
-				if (val < 0) val = 0;
-				WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_REG = val;
-			}
-			status = 0x00; // 成功
-		}
+		return; // 参数非法, 不回发
 	}
-	
-	if (status != 0x00) {
-		// NACK 7 字节短帧
-		send_buf[0] = 0xA5;
-		send_buf[1] = 0x09;
-		send_buf[2] = 0x02;
-		send_buf[3] = 0x04;
-		send_buf[4] = status;
-		send_buf[5] = crc8_calc(send_buf, 5);
-		send_buf[6] = 0x5A;
-		send_len = 7;
-	} else {
-		// 成功 14 字节长帧
-		send_buf[0] = 0xA5;
-		send_buf[1] = 0x09;
-		send_buf[2] = 0x08;
-		send_buf[3] = 0x04;
-		send_buf[4] = 0x00;
-		send_buf[5] = unit_current[0];
-		uint16_t ft = (uint16_t)unit_current[0] * 832;
-		send_buf[6] = (ft >> 8) & 0xFF;
-		send_buf[7] = ft & 0xFF;
-		uint16_t predict_uA = (uint16_t)unit_current[0] * 255 * 832 / 1000;
-		send_buf[8] = (predict_uA >> 8) & 0xFF;
-		send_buf[9] = predict_uA & 0xFF;
-		send_buf[10] = (unit_t[0] & 0x07);
-		send_buf[11] = (isel_t[0][63] & 0xFF);
-		send_buf[12] = crc8_calc(send_buf, 12);
-		send_buf[13] = 0x5A;
-		send_len = 14;
+
+	// target_mA 单位为 0.1mA，x10 统一换算为以 0.01mA 为单位 (例 20 -> 200 即 2.00mA)
+	uint32_t I_exp = (uint32_t)target_mA * 10;
+	// measured_x100 单位本身即为 0.01mA (例 215 即 2.15mA)
+	uint32_t I_act = (uint32_t)measured_x100;
+	uint32_t old_unit = (uint32_t)unit_current[0];
+	// 四舍五入逼近计算新的 unit_current (uA): 目标 I_exp / 实测 I_act 比例进行正向缩放
+	uint32_t new_unit = (old_unit * I_exp + I_act / 2) / I_act;
+
+	if (new_unit < 3 || new_unit > 250) {
+		return; // 超出合理范围, 不回发
 	}
-	for (volatile int c = 0; c < 200; c++);
-	Uart_Send(CMSDK_UART1, send_buf, send_len);
+
+	unit_current[0] = (uint8_t)new_unit; // 仅更新 RAM 变量！不写入 MTP
+
+	// 动态刷新 WaveGen 硬件 RAM 描点 (保持 DEMO 官方基准缩放)
+	float target_ratio = (g_current > 0) ? ((float)g_current / 20.0f) : 1.0f;
+	float unit_val = (unit_current[0] > 0) ? (float)unit_current[0] : 33.0f;
+	float scale_factor = 0.6455f * target_ratio * (unit_val / 33.0f);
+	for(int i = 0; i < 64; i++){
+		WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
+		int val = (int)((float)sine_data[i] * scale_factor);
+		if (val > 255) val = 255;
+		if (val < 0) val = 0;
+		WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_IN_WAVE_REG = val;
+	}
 }
 
 /* 0x05 一键落盘 MTP 存储处理 */
@@ -383,7 +330,6 @@ int main(){
 	Delay_268ms(1);
 	MTP_init();
 	ClockInit();
-	GET_FT_CURRENT();
 	/*uart*/
 	
 ///****************FIFOж??*************************/
