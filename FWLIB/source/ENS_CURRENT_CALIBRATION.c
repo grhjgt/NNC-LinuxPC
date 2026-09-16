@@ -1,73 +1,3 @@
-#include "ENS_CURRENT_CALIBRATION.h"
-#include "ENS1_TIMER.h"
-#include <math.h>
-
-/* ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ë²¨ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ */
-volatile uint32_t TOTAL_TIME_THRESHOLD_VALUE[4] = {0, 0, 0, 0};
-volatile uint32_t TRIGGER_TIME_COUNT[4] = {0, 0, 0, 0};
-volatile uint32_t TRIGGER_TIME_THRESHOLD_VALUE[4] = {0, 0, 0, 0};
-volatile uint32_t CHANNEL_TIME_COUNT[4] = {0, 0, 0, 0};
-volatile uint8_t  TRIGGER_TIME_COUNT_FLAG = 0;
-
-/* ï¿½ï¿½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½Ã½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
-STRUCT_WAVEFORM_PARA ParaSet_waveform[4] =
-{	
-	/*Í¨ï¿½ï¿½1 -- ST0 ST1 */
-	{	
-		.Type = SQUARE_WAVE ,           			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
-		.PositivePulseWidth = 100  ,      				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DeadTime   = 10,                  				//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.NegativePulseWidth = 100 ,       				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.ClientTime = 1000 ,              					//ï¿½ï¿½Ä¬Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DelayOutputTime_US = 0,          				//ï¿½Ó³ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.OtherWaveformPara.AlternatingFreq_HZ = 0,      //ï¿½ï¿½ï¿½æ²¨ï¿½ï¿½Æµï¿½ï¿½
-		.OtherWaveformPara.TotalOutputTime_S = 0,       //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½
-		.OtherWaveformPara.NumOfPulseGroups  = 0,       //ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   	//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-	},
-	/*Í¨ï¿½ï¿½2 -- ST2 ST3 */
-	{
-		.Type = TRIANGULAR_WAVE ,          					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
-		.PositivePulseWidth = 0  ,      					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DeadTime   = 0,                  					//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.NegativePulseWidth = 0 ,       					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.ClientTime = 0 ,              						//ï¿½ï¿½Ä¬Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DelayOutputTime_US = 0,          					//ï¿½Ó³ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.OtherWaveformPara.AlternatingFreq_HZ = 0,          //ï¿½ï¿½ï¿½æ²¨ï¿½ï¿½Æµï¿½ï¿½
-		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½
-		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   		//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-	},
-	/*Í¨ï¿½ï¿½3 -- ST4 ST5 */
-	{
-		.Type = TRIANGULAR_WAVE ,          					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
-		.PositivePulseWidth = 0  ,      					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DeadTime   = 0,                  					//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.NegativePulseWidth = 0 ,       					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.ClientTime = 0 ,              						//ï¿½ï¿½Ä¬Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DelayOutputTime_US = 0,          					//ï¿½Ó³ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.OtherWaveformPara.AlternatingFreq_HZ = 0,        	//ï¿½ï¿½ï¿½æ²¨ï¿½ï¿½Æµï¿½ï¿½
-		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½
-		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,  		//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-	},
-	/*Í¨ï¿½ï¿½4 -- ST6 ST7 */
-	{
-		.Type = TRIANGULAR_WAVE ,          					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
-		.PositivePulseWidth = 0  ,      					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DeadTime   = 0,                  					//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.NegativePulseWidth = 0 ,      					 	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-Î¢ï¿½ï¿½
-		.ClientTime = 0 ,              						//ï¿½ï¿½Ä¬Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.DelayOutputTime_US = 0,          					//ï¿½Ó³ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½-Î¢ï¿½ï¿½
-		.OtherWaveformPara.AlternatingFreq_HZ = 0,          //ï¿½ï¿½ï¿½æ²¨ï¿½ï¿½Æµï¿½ï¿½
-		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½
-		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   		//ï¿½ï¿½ï¿½ï¿½ÈºÄ£Ê½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-	},
-};
-
-
-/*-------------------------ï¿½ï¿½Ê±ï¿½ï¿½/ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½---------------------------*/
 /*
 *Copyright ,2023 , NANOCHAP
 *File name:   ENS1_CURRENT_CALIBRATION.C         
@@ -81,27 +11,106 @@ History:
 	1.V1.0
 	Date:          
 	Author: 
-	Modification: 
+	Modification: ³õ°æ
 */ 
 #include "ENS_CURRENT_CALIBRATION.h"
+#include "ENS1_MTP.h"
 #include "ENS1_UART.h"
 #include "ENS1_TIMER.h"
 
-/*-------------------------ï¿½ï¿½È¡ï¿½ï¿½FTï¿½ï¿½ï¿½Ôºï¿½ï¿½Êµï¿½Ê²ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½Öµ---------------------------*/
-uint8_t CUSTOM_UNIT_CURRENT[4] = {33, 33, 33, 33};     // è‡ªå®šä¹‰é»˜è®¤å•å…ƒç”µæµå€¼
-uint8_t unit_current[4] = {33, 33, 33, 33};              // è¿è¡Œæ—¶å®žé™…æœ‰æ•ˆçš„å•å…ƒç”µæµå€¼ (RAM, é»˜è®¤33uA, ç”±HK32 0x04æŒ‡ä»¤æ›´æ–°)
+/*--------------------------------²¨ÐÎ²ÎÊýµÄ³õÊ¼»¯·ùÖµ½á¹¹Ìå-----------------------------*/
 
-/*-------------------------------------ï¿½ï¿½--------------------------------*/
-//??
+STRUCT_WAVEFORM_PARA ParaSet_waveform[4] =
+{	
+	/*Í¨µÀ1 -- ST0 ST1 */
+	{	
+		.Type = SQUARE_WAVE ,           			//²¨ÐÎÖÖÀàÑ¡Ôñ
+		.PositivePulseWidth = 100  ,      				//Õý°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.DeadTime   = 10,                  				//ËÀÇøÊ±¼ä-Î¢Ãë
+		.NegativePulseWidth = 100 ,       				//¸º°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.ClientTime = 1000 ,              					//¾²Ä¬Ê±¼ä-Î¢Ãë
+		.DelayOutputTime_US = 0,          				//ÑÓ³ÙÊä³öÊ±¼ä-Î¢Ãë
+		.OtherWaveformPara.AlternatingFreq_HZ = 0,      //½»Ìæ²¨ÐÎÆµÂÊ //
+		.OtherWaveformPara.TotalOutputTime_S = 0,       //ÉèÖÃ×ÜÊä³öÊ±¼ä Ãë
+		.OtherWaveformPara.NumOfPulseGroups  = 0,       //Âö³åÈºÄ£Ê½ÏÂµÄÃ¿×éÂö³åÊýÁ¿
+		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   	//Âö³åÈºÄ£Ê½ÏÂµÄ×é¼ä¸ôÊ±¼ä ºÁÃë
+	},
+	/*Í¨µÀ2 -- ST2 ST3 */
+	{
+		.Type = TRIANGULAR_WAVE ,          					//²¨ÐÎÖÖÀàÑ¡Ôñ
+		.PositivePulseWidth = 0  ,      					//Õý°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.DeadTime   = 0,                  					//ËÀÇøÊ±¼ä-Î¢Ãë
+		.NegativePulseWidth = 0 ,       					//¸º°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.ClientTime = 0 ,              						//¾²Ä¬Ê±¼ä-Î¢Ãë
+		.DelayOutputTime_US = 0,          					//ÑÓ³ÙÊä³öÊ±¼ä-Î¢Ãë
+		.OtherWaveformPara.AlternatingFreq_HZ = 0,          //½»Ìæ²¨ÐÎÆµÂÊ //
+		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ÉèÖÃ×ÜÊä³öÊ±¼ä Ãë
+		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//Âö³åÈºÄ£Ê½ÏÂµÄÃ¿×éÂö³åÊýÁ¿
+		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   		//Âö³åÈºÄ£Ê½ÏÂµÄ×é¼ä¸ôÊ±¼ä ºÁÃë
+	},
+	/*Í¨µÀ3 -- ST4 ST5 */
+	{
+		.Type = TRIANGULAR_WAVE ,          					//²¨ÐÎÖÖÀàÑ¡Ôñ
+		.PositivePulseWidth = 0  ,      					//Õý°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.DeadTime   = 0,                  					//ËÀÇøÊ±¼ä-Î¢Ãë
+		.NegativePulseWidth = 0 ,       					//¸º°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.ClientTime = 0 ,              						//¾²Ä¬Ê±¼ä-Î¢Ãë
+		.DelayOutputTime_US = 0,          					//ÑÓ³ÙÊä³öÊ±¼ä-Î¢Ãë
+		.OtherWaveformPara.AlternatingFreq_HZ = 0,        	//½»Ìæ²¨ÐÎÆµÂÊ //
+		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ÉèÖÃ×ÜÊä³öÊ±¼ä Ãë
+		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//Âö³åÈºÄ£Ê½ÏÂµÄÃ¿×éÂö³åÊýÁ¿
+		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,  		//Âö³åÈºÄ£Ê½ÏÂµÄ×é¼ä¸ôÊ±¼ä ºÁÃë
+	},
+	/*Í¨µÀ4 -- ST6 ST7 */
+	{
+		.Type = TRIANGULAR_WAVE ,          					//²¨ÐÎÖÖÀàÑ¡Ôñ
+		.PositivePulseWidth = 0  ,      					//Õý°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.DeadTime   = 0,                  					//ËÀÇøÊ±¼ä-Î¢Ãë
+		.NegativePulseWidth = 0 ,      					 	//¸º°ëÖÜÆÚÂö¿í-Î¢Ãë
+		.ClientTime = 0 ,              						//¾²Ä¬Ê±¼ä-Î¢Ãë
+		.DelayOutputTime_US = 0,          					//ÑÓ³ÙÊä³öÊ±¼ä-Î¢Ãë
+		.OtherWaveformPara.AlternatingFreq_HZ = 0,          //½»Ìæ²¨ÐÎÆµÂÊ //
+		.OtherWaveformPara.TotalOutputTime_S = 0,       	//ÉèÖÃ×ÜÊä³öÊ±¼ä Ãë
+		.OtherWaveformPara.NumOfPulseGroups  = 0,        	//Âö³åÈºÄ£Ê½ÏÂµÄÃ¿×éÂö³åÊýÁ¿
+		.OtherWaveformPara.TimeOfPulseGroups_MS = 0,   		//Âö³åÈºÄ£Ê½ÏÂµÄ×é¼ä¸ôÊ±¼ä ºÁÃë
+	},
+};
+
+/*-------------------------------------------------------------------------------------*/
+
+/*-------------------------»ñÈ¡µ½FT²âÊÔºóµÄÊµ¼Ê²âÁ¿µ¥ÔªµçÁ÷Öµ---------------------------*/
+uint16_t FT_CURRENT_SAVE[4]={0,0,0,0};                 //ÓÃÓÚ±£´æFT¶ÁÈ¡³öµÄÊý¾Ý
+uint8_t CUSTOM_UNIT_CURRENT[4]={33,33,33,33};          //ÓÃÓÚ×Ô¶¨Òåµ¥ÔªµçÁ÷Öµ
+uint8_t  unit_current[4] ={0,0,0,0};                   //±£´æ¼ÆËãºÃµÄÊµ¼Êµ¥ÔªµçÁ÷Öµ
+uint8_t GET_FT_CURRENT(void)                           //µçÁ÷ÉèÖÃ£º208*4
+{	
+	//µ±ÐèÒªÊ¹ÓÃFTºóµÄÐ¾Æ¬Ê±£¬´ò¿ª×¢ÊÍ£¬ ´ËÊ±×Ô¶¯¼ÆËãµ¥ÔªµçÁ÷
+	//µ±ÊÖ¶¯Ð£×¼Ê±£¬ÐÞ¸ÄCUSTOM_UNIT_CURRENT[4] Êý×éÖÐµÄÊý¾Ý£¬²¢½«ÏÂÃæ4ÐÐ×¢ÊÍµô
+//	flash_read(DATA_SAVE_ADDR ,&FT_CURRENT_SAVE[0]);//¶Á³ö±£´æÔÚMTPÖÐµÄÊµ¼Ê¼ì²âµçÁ÷ÖµÓÃÓÚ¼ÆËãÊµ¼Êµ¥ÔªµçÁ÷
+//	flash_read(DATA_SAVE_ADDR+2 ,&FT_CURRENT_SAVE[1]);//¶Á³ö±£´æÔÚMTPÖÐµÄÊµ¼Ê¼ì²âµçÁ÷ÖµÓÃÓÚ¼ÆËãÊµ¼Êµ¥ÔªµçÁ÷
+//	flash_read(DATA_SAVE_ADDR+4 ,&FT_CURRENT_SAVE[2]);//¶Á³ö±£´æÔÚMTPÖÐµÄÊµ¼Ê¼ì²âµçÁ÷ÖµÓÃÓÚ¼ÆËãÊµ¼Êµ¥ÔªµçÁ÷
+//	flash_read(DATA_SAVE_ADDR+6 ,&FT_CURRENT_SAVE[3]);//¶Á³ö±£´æÔÚMTPÖÐµÄÊµ¼Ê¼ì²âµçÁ÷ÖµÓÃÓÚ¼ÆËãÊµ¼Êµ¥ÔªµçÁ÷
+	for(int i = 0 ;i<4;i++)
+	{
+		if(FT_CURRENT_SAVE[i] != 0)
+			unit_current[i] = (uint8_t)(FT_CURRENT_SAVE[i] /( 208 * 4 )) ;  //¼ÆËãÊµ¼Êµ¥ÔªµçÁ÷
+		else 
+			unit_current[i] = CUSTOM_UNIT_CURRENT[i] ;
+	}
+	return 0;
+}
+
+/*-------------------------------------Êä³öµçÁ÷´óÐ¡ÉèÖÃ--------------------------------*/
+//ÕýÏÒ²¨¼ÆËãÊý¾ÝÌî³äÖµ
 double sin_cal(uint8_t angle)  //0-180
 {	
 	double radian = angle*PI/180;
 	return sin(radian);
 }
 
-//????64??ï¿½ï¿½??
-uint16_t unit_t[4]; //???0-7  ??
-uint32_t isel_t[4][64]; //??ï¿½ï¿½0-255??
+//¼ÆËã²»Í¬²¨ÐÎÏÂµÄµÄ64¸öµãµÄÖµ£¬µ±Ç°ÓÐ·½²¨£¬ÕýÏÒ²¨£¬Èý½Ç²¨
+uint16_t unit_t[4]; //±£´æ¼ÆËãºóµÄµ¥ÔªµçÁ÷ÏµÊý£¨0-7£©  ¹²ËÄ¸öÍ¨µÀ
+uint32_t isel_t[4][64]; //±£´æ¼ÆËãºóµÃµ½µÄµçÁ÷µ²Î»£¨0-255£©¹²ËÄ¸öÍ¨µÀ
 BasicWaveformType  wavePara_type[4];
 uint8_t cal_output_current_mA(CHANNEL_NUM CHANNEL_X,float mA,BasicWaveformType type, uint16_t* unit , uint32_t (*isel)[64])   // uint16_t read_current_data  
 {	
@@ -110,7 +119,6 @@ uint8_t cal_output_current_mA(CHANNEL_NUM CHANNEL_X,float mA,BasicWaveformType t
 	else if(CHANNEL_X == CHANNEL_1) WAVE_GEN_BLK=WAVE_GEN_DRVA_BLK1;
 	else if(CHANNEL_X == CHANNEL_2) WAVE_GEN_BLK=WAVE_GEN_DRVA_BLK2;
 	else WAVE_GEN_BLK =             WAVE_GEN_DRVA_BLK3;
-	(void)WAVE_GEN_BLK;
 	
 	if(!mA)
 	{	
@@ -126,7 +134,7 @@ uint8_t cal_output_current_mA(CHANNEL_NUM CHANNEL_X,float mA,BasicWaveformType t
 	{
 		if(type == SQUARE_WAVE)   
 		{
-			//,?????
+			//±£´æ¼ÆËã½á¹û,ÓÃÓÚ¸øµçÁ÷Ïà¹ØµÄ¼Ä´æÆ÷¸³Öµ
 			*(unit+CHANNEL_X) = (uint16_t)(mA * 1000 / (unit_current[CHANNEL_X] * 255));                    // 0 - 7
 			for(int i = 0 ;i<64;i++)
 			{
@@ -135,16 +143,16 @@ uint8_t cal_output_current_mA(CHANNEL_NUM CHANNEL_X,float mA,BasicWaveformType t
 		}
 		else if(type== SINE_WAVE)
 		{	
-			//,?????
+			//±£´æ¼ÆËã½á¹û,ÓÃÓÚ¸øµçÁ÷Ïà¹ØµÄ¼Ä´æÆ÷¸³Öµ
 			*(unit+CHANNEL_X) = (uint16_t)(mA * 1000 / (unit_current[CHANNEL_X] * 255));                    // 0 - 7
 			for(int i = 0 ;i<64;i++)
 			{
 				*(isel[0]+CHANNEL_X*64+i) = (uint16_t)(mA * 1000 / ((*(unit+CHANNEL_X) + 1)*unit_current[CHANNEL_X])*sin_cal(i*2.85714));      // 0 - 255		
 			}
 		}	
-		else //??(type == TRIANGULAR_WAVE )
+		else //Èý½Ç²¨¸³Öµ(type == TRIANGULAR_WAVE )
 		{
-			//,?????
+			//±£´æ¼ÆËã½á¹û,ÓÃÓÚ¸øµçÁ÷Ïà¹ØµÄ¼Ä´æÆ÷¸³Öµ
 				
 				*(unit+CHANNEL_X) = (uint16_t)(mA * 1000 / (unit_current[CHANNEL_X] * 255));                    // 0 - 7
 				*(isel[0]+CHANNEL_X*64) = 0;
@@ -164,8 +172,8 @@ uint8_t cal_output_current_mA(CHANNEL_NUM CHANNEL_X,float mA,BasicWaveformType t
 	return 0; 	
 }
 
-/*?*/
-/*CONFIG?*/
+/*³õÊ¼»¯ÉèÖÃ*/
+/*CONFIG¼Ä´æÆ÷ÉèÖÃ*/
 uint8_t ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_NUM CHANNEL_X , DRV_CONFIG BIT)
 {	
 	CMSDK_WAVE_GEN_TypeDef* WAVE_GEN_BLK;
@@ -215,7 +223,7 @@ uint8_t ENS_STIMU_CONFIG_BIT_DISABLE(CHANNEL_NUM CHANNEL_X , DRV_CONFIG BIT)
 }
 
 
-/*---------------------------?ï¿½ï¿½?????--------------------------------*/
+/*---------------------------µç´Ì¼¤ÓÐ¹ØµÄ¼Ä´æÆ÷µÄ³õÊ¼»¯--------------------------------*/
 uint32_t  StimulatorInit(CHANNEL_NUM CHANNEL_X)
 {
 	//uint32_t WaveformFreq=0;
@@ -224,9 +232,9 @@ uint32_t  StimulatorInit(CHANNEL_NUM CHANNEL_X)
 	else if(CHANNEL_X == CHANNEL_1) WAVE_GEN_BLK=WAVE_GEN_DRVA_BLK1;
 	else if(CHANNEL_X == CHANNEL_2) WAVE_GEN_BLK=WAVE_GEN_DRVA_BLK2;
 	else WAVE_GEN_BLK = WAVE_GEN_DRVA_BLK3;
-	//config 
+	//config ÉèÖÃ
 	ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,DISABLE_ALL_BIT);
-	//1  ???0ï¿½ï¿½?sine ,?REST 
+	//1 ¡¢ ËÀÇøÊ±¼ä²»Îª0£¬²¨ÐÎ²»Îªsine²¨ ,Ê¹ÄÜREST 
 	if((ParaSet_waveform[CHANNEL_X].DeadTime > 0)){            
 		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,REST_BIT);
 	}
@@ -234,13 +242,13 @@ uint32_t  StimulatorInit(CHANNEL_NUM CHANNEL_X)
 	{
 		ENS_STIMU_CONFIG_BIT_DISABLE(CHANNEL_X,REST_BIT);
 	}
-	//2  0 ? NEGATIVE_BIT  SOURCE_B_BIT
+	//2 ¡¢ ¸º°ëÖÜÆÚÂö¿í´óÓÚ0 Ê¹ÄÜ NEGATIVE_BIT ºÍ SOURCE_B_BIT
 	if(ParaSet_waveform[CHANNEL_X].NegativePulseWidth > 0)
 	{
-		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,SOURCE_B_BIT );  //SOURCEB???ï¿½ï¿½=0
+		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,SOURCE_B_BIT );  //SOURCEB²»Ê¹ÄÜÔò¸º°ëÖÜÆÚµÄÊý¾ÝÎÞÐ§£¨=0£©
 		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,NEGATIVE_BIT );		
 	}
-	//3????0SILENT_BIT
+	//3¡¢¾²Ä¬Ê±¼ä²»Îª0£¬¿ªÆôSILENT_BIT
 	if(ParaSet_waveform[CHANNEL_X].ClientTime>0)
 	{
 		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,SILENT_BIT);
@@ -250,13 +258,13 @@ uint32_t  StimulatorInit(CHANNEL_NUM CHANNEL_X)
 		ENS_STIMU_CONFIG_BIT_DISABLE(CHANNEL_X,SILENT_BIT);
 	}
 	
-	//4??ALTERNATING_POSITIVE_BIT
+	//4¡¢½»ÌæÄ£Ê½ALTERNATING_POSITIVE_BIT
 	if(ParaSet_waveform[CHANNEL_X].OtherWaveformPara.AlternatingFreq_HZ > 0 )
 	{
 		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,ALTERNATING_POSITIVE_BIT);
 		ENS_STIMU_CONFIG_BIT_DISABLE(CHANNEL_X,SOURCE_B_BIT);
 		ENS_STIMU_CONFIG_BIT_DISABLE(CHANNEL_X,NEGATIVE_BIT);
-		//??ï¿½ï¿½,????????????2^16
+		//½»ÌæÊ±¼äÓëÖ÷ÆµÓÐ¹Ø,ÊäÈëµÄ²ÎÊýÎª½»ÌæÆµÂÊ£¬ÐèÒª×ª»¯ÎªÊ±ÖÓ¸öÊý£¬Ê±ÖÓ¸öÊý²»ÄÜ³¬¹ý2^16
 		WAVE_GEN_BLK ->WAVE_GEN_DRV_ALT_LIM_REG =(uint16_t)(ParaSet_waveform[CHANNEL_X].PositivePulseWidth / (uint16_t)ParaSet_waveform[CHANNEL_X].OtherWaveformPara.AlternatingFreq_HZ * (uint16_t)(APB_Clock_Freq/1000000)) ;
 		ParaSet_waveform[CHANNEL_X].NegativePulseWidth = 0;
 	}
@@ -266,37 +274,37 @@ uint32_t  StimulatorInit(CHANNEL_NUM CHANNEL_X)
 	}
 	
 	ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,CONTINUE_REPEATING_BIT);	
-	//??  ï¿½ï¿½us
+	//ÑÓ³ÙÊä³öÊ±¼ä¼ÆËã  µ¥Î»us
 	WAVE_GEN_BLK->WAVE_GEN_DRV_DELAY_LIM_REG  = (uint8_t)(APB_Clock_Freq/1000000)*ParaSet_waveform[CHANNEL_X].DelayOutputTime_US;
-	//??STRUCT_WAVEFORM_PARA?????
+	//¸ù¾Ý³õÊ¼»¯ºóµÄSTRUCT_WAVEFORM_PARA½á¹¹Ìå¸ø¶ÔÓ¦µÄ¼Ä´æÆ÷¸³Öµ
 
 	WAVE_GEN_BLK->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG  =  ParaSet_waveform[CHANNEL_X].NegativePulseWidth;
 	WAVE_GEN_BLK->WAVE_GEN_DRV_HLF_WAVE_PRD_REG      =  ParaSet_waveform[CHANNEL_X].PositivePulseWidth;
 	WAVE_GEN_BLK->WAVE_GEN_DRV_CLK_FREQ_REG          =  (uint32_t)(APB_Clock_Freq/1000000);  //
 	WAVE_GEN_BLK->WAVE_GEN_DRV_SILENT_T_REG          =  ParaSet_waveform[CHANNEL_X].ClientTime;
 	WAVE_GEN_BLK->WAVE_GEN_DRV_REST_T_REG            =  ParaSet_waveform[CHANNEL_X].DeadTime;
-	WAVE_GEN_BLK->WAVE_GEN_DRV_NEG_SCALE_REG         =  1;   //???0 ï¿½ï¿½0
+	WAVE_GEN_BLK->WAVE_GEN_DRV_NEG_SCALE_REG         =  1;   //¼Ä´æÆ÷Ä¬ÈÏÎª0£¬ ±ØÐëÐ´´óÓÚ0µÄÊý
 	WAVE_GEN_BLK->WAVE_GEN_DRV_NEG_OFFSET_REG        =  0;
 	
 	//WaveformFreq = (uint32_t)(1000000 / (wavePara.ClientTime + wavePara.DeadTime +wavePara.NegativePulseWidth + wavePara.PositivePulseWidth));
-	//ï¿½h
+	//±£´æ²¨ÐÎÀàÐÍÊý¾Ý
 	wavePara_type[CHANNEL_X] = ParaSet_waveform[CHANNEL_X].Type;
 	
 	TOTAL_TIME_THRESHOLD_VALUE[CHANNEL_X] = ParaSet_waveform[CHANNEL_X].OtherWaveformPara.TotalOutputTime_S * 1000;
 	if( (ParaSet_waveform[CHANNEL_X].OtherWaveformPara.TimeOfPulseGroups_MS > 0)  || (ParaSet_waveform[CHANNEL_X].OtherWaveformPara.NumOfPulseGroups >0))
 	{
-		TRIGGER_TIME_COUNT[CHANNEL_X] = 0;  //?	
+		TRIGGER_TIME_COUNT[CHANNEL_X] = 0;  //¼ä¸ôÊ±¼äÇåÁã	
 		TRIGGER_TIME_THRESHOLD_VALUE[CHANNEL_X]=ParaSet_waveform[CHANNEL_X].OtherWaveformPara.TimeOfPulseGroups_MS ;
 		NUM_OF_PULSES_THRESHOLD[CHANNEL_X] = ParaSet_waveform[CHANNEL_X].OtherWaveformPara.NumOfPulseGroups ;
 		WAVE_GEN_BLK->WAVE_GEN_DRV_INT_REG               =  0x001f0001;
 	}
 	uint8_t returnValue = cal_output_current_mA(CHANNEL_X,0, wavePara_type[CHANNEL_X], unit_t , isel_t) ;
 	
-	return (uint32_t)(WAVE_GEN_BLK->WAVE_GEN_DRV_CONFIG_REG);  //?ï¿½ï¿½?
+	return (uint32_t)(WAVE_GEN_BLK->WAVE_GEN_DRV_CONFIG_REG);  //·µ»Ø²¨ÐÎµÄÆµÂÊ
 }
 
-/*-------------------------------------------------------------------------------*/
-volatile uint8_t statics_config=0;    //??ï¿½ï¿½? 0 / 1 / 2 /4 / 8
+/*--------------------------------------Æô¶¯Êä³ö-----------------------------------------*/
+volatile uint8_t statics_config=0;    //Ã÷È·µ±Ç°ÓÐ¼¸¸öÍ¨µÀÔÚÊä³ö 0 / 1 / 2 /4 / 8
 void StartStimulatorOut(CHANNEL_NUM CHANNEL_X)
 {
 	CMSDK_WAVE_GEN_TypeDef* WAVE_GEN_BLK;
@@ -306,11 +314,11 @@ void StartStimulatorOut(CHANNEL_NUM CHANNEL_X)
 	else {WAVE_GEN_BLK = WAVE_GEN_DRVA_BLK3;     statics_config |= (1<<3) ;}
 	if(statics_config > 1)
 	{
-		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,MULTI_ELECTRODE_BIT);  //ï¿½ï¿½?
+		ENS_STIMU_CONFIG_BIT_ENABLE(CHANNEL_X,MULTI_ELECTRODE_BIT);  //¶àµç¼«Ê¹ÄÜ
 	}
 	WAVE_GEN_BLK->WAVE_GEN_DRV_CTRL_REG = 1;
 }
-/*--------------------------------------??----------------------------------------*/
+/*--------------------------------------Í£Ö¹Êä³ö----------------------------------------*/
 void StopStimulatorOut(CHANNEL_NUM CHANNEL_X)
 {
 	CMSDK_WAVE_GEN_TypeDef* WAVE_GEN_BLK;
@@ -325,8 +333,8 @@ void StopStimulatorOut(CHANNEL_NUM CHANNEL_X)
 	}
 }
 
-/*-----------------------------?ï¿½ï¿½??-------------------------------*/
-/*ï¿½ï¿½?*/
+/*-----------------------------µç´Ì¼¤¹ý³ÌÖÐµÄµçÁ÷¡¢ÆµÂÊÉèÖÃ-------------------------------*/
+/*Êä³öµçÁ÷´óÐ¡ÐÞ¸Ä*/
 uint8_t CURRENT_AMPLITUDE_MODIFY(CHANNEL_NUM CHANNEL_X , float mA)
 {
 	CMSDK_WAVE_GEN_TypeDef* WAVE_GEN_BLK;
@@ -339,18 +347,18 @@ uint8_t CURRENT_AMPLITUDE_MODIFY(CHANNEL_NUM CHANNEL_X , float mA)
 	WAVE_GEN_BLK->WAVE_GEN_DRV_INT_REG =  0;
 	StopStimulatorOut(CHANNEL_X);
 	cal_output_current_mA(CHANNEL_X,mA, wavePara_type[CHANNEL_X], unit_t , isel_t) ;	
-	WAVE_GEN_BLK ->WAVE_GEN_DRV_ISEL_REG = unit_t[CHANNEL_X];  //ï¿½ï¿½ 0x00 - 0x07   ?
+	WAVE_GEN_BLK ->WAVE_GEN_DRV_ISEL_REG = unit_t[CHANNEL_X];  //·¶Î§ 0x00 - 0x07   µ¥ÔªµçÁ÷
 	for(int i=0; i<64; i++){
 		WAVE_GEN_BLK->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;  
-		WAVE_GEN_BLK->WAVE_GEN_DRV_IN_WAVE_REG = isel_t[CHANNEL_X][i]; //0xff   ï¿½ï¿½
+		WAVE_GEN_BLK->WAVE_GEN_DRV_IN_WAVE_REG = isel_t[CHANNEL_X][i]; //×î´ó0xff   µçÁ÷µ²Î»
 	}	
 	WAVE_GEN_BLK->WAVE_GEN_DRV_INT_REG =  0x001f0001;
 	NVIC_EnableIRQ(WG_DRV_IRQn);
 	StartStimulatorOut(CHANNEL_X);
-	return (uint8_t)(WAVE_GEN_BLK->WAVE_GEN_DRV_CTRL_REG); //??
+	return (uint8_t)(WAVE_GEN_BLK->WAVE_GEN_DRV_CTRL_REG); //·µ»Ø×´Ì¬
 }
 
-/*????????=(1000000/( +  + ? + ??))*/
+/*Êä³ö²¨ÐÎÆµÂÊµÄÊµÊ±ÐÞ¸Ä£¬Êä³öÊ±£¬²¨ÐÎÆµÂÊ=(1000000/(Õý°ëÖÜÆÚÂö¿í + ¸º°ëÖÜÆÚÂö¿í + ËÀÇøÊ±¼ä + ¾²Ä¬Ê±¼ä))*/
 uint32_t CURRENT_FREQ_MODIFY(CHANNEL_NUM CHANNEL_X , uint32_t freq)
 {
 	uint32_t Pulse_Width = 0;
@@ -363,16 +371,16 @@ uint32_t CURRENT_FREQ_MODIFY(CHANNEL_NUM CHANNEL_X , uint32_t freq)
 		freq = 50000;
 	else if(freq < 10)
 		freq = 10;	
-	//??????0 ???????? ???0?/??
+	//ËÀÇøÊýÖµ²»¸Ä¶¯£¬Èç¹û¾²Ä¬Ê±¼ä²»Îª0 £¬ÔòÍ¨¹ýÐÞ¸Ä¾²Ä¬Ê±¼äÐÞ¸Ä²¨ÐÎÆµÂÊ £¬Èç¹û¾²Ä¬Ê±¼äÎª0£¬ÔòÐÞ¸ÄÕý°ëÖÜÆÚ/¸º°ëÖÜÆÚÂö¿íÐÞ¸ÄÆµÂÊ
 	if(ParaSet_waveform[CHANNEL_X].ClientTime > 0)
 	{
-		Pulse_Width/*??*/ = (uint32_t)((1000000/freq) - ParaSet_waveform[CHANNEL_X].DeadTime - ParaSet_waveform[CHANNEL_X].PositivePulseWidth - ParaSet_waveform[CHANNEL_X].NegativePulseWidth);
+		Pulse_Width/*¾²Ä¬Ê±¼ä*/ = (uint32_t)((1000000/freq) - ParaSet_waveform[CHANNEL_X].DeadTime - ParaSet_waveform[CHANNEL_X].PositivePulseWidth - ParaSet_waveform[CHANNEL_X].NegativePulseWidth);
 		WAVE_GEN_BLK->WAVE_GEN_DRV_SILENT_T_REG = Pulse_Width;
 		return Pulse_Width;
 	}	
 	else if(ParaSet_waveform[CHANNEL_X].ClientTime == 0)
 	{
-		Pulse_Width/*+*/ = (uint32_t)((1000000/freq) - ParaSet_waveform[CHANNEL_X].DeadTime) ; 
+		Pulse_Width/*Õý+¸ºÂö¿í*/ = (uint32_t)((1000000/freq) - ParaSet_waveform[CHANNEL_X].DeadTime) ; 
 		if(ParaSet_waveform[CHANNEL_X].NegativePulseWidth == 0)
 			WAVE_GEN_BLK->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = Pulse_Width;
 		else 
@@ -389,7 +397,7 @@ uint32_t CURRENT_FREQ_MODIFY(CHANNEL_NUM CHANNEL_X , uint32_t freq)
 }
 
 
-//???
+//µç´Ì¼¤Ê±¼ä¼ÆÊ±
 
 uint32_t StimuTimeCount_S(CHANNEL_NUM CHANNEL_X , TIME_COUNT_MODE MODE)
 {
@@ -398,20 +406,20 @@ uint32_t StimuTimeCount_S(CHANNEL_NUM CHANNEL_X , TIME_COUNT_MODE MODE)
 	{
 		count_time = *(CHANNEL_TIME_COUNT+CHANNEL_X) ;
 	}
-	else          //MODE == TRIGGER_TIME_MODE  ?
+	else          //MODE == TRIGGER_TIME_MODE  ¼ä¸ôÊ±¼ä
 	{
 		count_time = *(TRIGGER_TIME_COUNT+CHANNEL_X);
 	}
 	return count_time;
 }
 
-//??ï¿½ï¿½??ï¿½ï¿½?ï¿½Ç§ï¿½?
+//·µ»Øµ±Ç°²¨ÐÎ·¢ÉúÁË¶àÉÙ´Î£¨ÐèÒª¿ªÆô²¨ÐÎ·¢ÉúÆ÷µÄÖÐ¶Ï£©
 uint32_t waveformOccurreCount(CHANNEL_NUM CHANNEL_X)
 {
 	return (uint32_t)(wave_gen_irq_occurred[CHANNEL_X]/4);
 }
 
-/*-------------------------------?ï¿½ï¿½?-----------------------*/
+/*-------------------------------µç´Ì¼¤Çý¶¯Æ÷ÖÐ¶Ï´¦Àíº¯Êý-----------------------*/
 volatile uint32_t NUM_OF_PULSES_THRESHOLD[4]={0,0,0,0};
 volatile uint32_t wave_gen_irq_occurred[4]={0,0,0,0};
 void  WG_DRV_Handler(void) 
@@ -425,9 +433,9 @@ void  WG_DRV_Handler(void)
 		else if(i==2){  DRVA= WAVE_GEN_DRVA_BLK2;	}
 		else if(i==3){  DRVA= WAVE_GEN_DRVA_BLK3;	}
 
-		if((DRVA->WAVE_GEN_DRV_INT_REG & CMSDK_WAVE_GEN_DRV_INT_READ_DRIVER_NUM_Msk) == i) //ï¿½ï¿½??ï¿½ï¿½
+		if((DRVA->WAVE_GEN_DRV_INT_REG & CMSDK_WAVE_GEN_DRV_INT_READ_DRIVER_NUM_Msk) == i) //ÅÐ¶ÏÄÄ¸öÍ¨µÀ·¢ÉúÁËÖÐ¶Ï
 		{
-			if((DRVA->WAVE_GEN_DRV_INT_REG & CMSDK_WAVE_GEN_DRV_INT_FIRSTADDR_STS_Msk) == CMSDK_WAVE_GEN_DRV_INT_FIRSTADDR_STS_Msk)//?ï¿½ï¿½??ï¿½ï¿½
+			if((DRVA->WAVE_GEN_DRV_INT_REG & CMSDK_WAVE_GEN_DRV_INT_FIRSTADDR_STS_Msk) == CMSDK_WAVE_GEN_DRV_INT_FIRSTADDR_STS_Msk)//µÚÒ»ÖÐ¶Ïµã·¢ÉúÖÐ¶Ï
 			{
 				if(((DRVA->WAVE_GEN_DRV_INT_REG & CMSDK_WAVE_GEN_DRV_INT_READ_FIRST_ADDR_Msk)>>CMSDK_WAVE_GEN_DRV_INT_READ_FIRST_ADDR_Pos) == 0) 
 				{
@@ -440,7 +448,7 @@ void  WG_DRV_Handler(void)
 				{
 						DRVA->WAVE_GEN_DRV_INT_REG = (31 << CMSDK_WAVE_GEN_DRV_INT_SECOND_ADDR_Pos) | (0 << CMSDK_WAVE_GEN_DRV_INT_FIRST_ADDR_Pos) | CMSDK_WAVE_GEN_DRV_INT_FIRSTADDR_CLR_Msk | CMSDK_WAVE_GEN_DRV_INT_EN_Msk;
 				}
-				if((NUM_OF_PULSES_THRESHOLD[i] > 0))  //???
+				if((NUM_OF_PULSES_THRESHOLD[i] > 0))  //ÐèÒªÂö³å¼ÆÊý¹¦ÄÜ²Å¿ªÆô¼ÆÊý
 					wave_gen_irq_occurred[i]++;
 				
 				
@@ -451,12 +459,13 @@ void  WG_DRV_Handler(void)
 				DRVA->WAVE_GEN_DRV_INT_REG = CMSDK_WAVE_GEN_DRV_INT_SECONDADDR_CLR_Msk | CMSDK_WAVE_GEN_DRV_INT_EN_Msk;
 				NVIC_DisableIRQ(WG_DRV_IRQn);
 				DRVA->WAVE_GEN_DRV_INT_REG =  0;
-				TRIGGER_TIME_COUNT_FLAG |= (1<<i);  //??1
-				wave_gen_irq_occurred[i] = 0;       //
+				TRIGGER_TIME_COUNT_FLAG |= (1<<i);  //Âö³åÈº±êÖ¾ÖÃ1
+				wave_gen_irq_occurred[i] = 0;       //ÇåÁã¼ÆÊý
 			}
 		}	
 	}
 }
+
 
 
 

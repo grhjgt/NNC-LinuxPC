@@ -297,11 +297,11 @@ ARM Macro Assembler    Page 5
               00000000 
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0 --apcs=interw
-ork --depend=.\objects\startup_cmsdk_cm0.d -o.\objects\startup_cmsdk_cm0.o -I"E
-:\Keil 5\ARM\PACK\ARM\Cortex_DFP\1.1.0\Device\ARMCM0\Include" -I"E:\Keil 5\ARM\
-PACK\ARM\Cortex_DFP\1.1.0\Device\ARM\ARMCM0\Include" --predefine="__MICROLIB SE
-TA 1" --predefine="__UVISION_VERSION SETA 542" --predefine="ARMCM0 SETA 1" --li
-st=.\listings\startup_cmsdk_cm0.lst CORE\ARM\startup_CMSDK_CM0.s
+ork --depend=.\objects\startup_cmsdk_cm0.d -o.\objects\startup_cmsdk_cm0.o -I.\
+RTE\_ENS001_BASIC_PRJ -ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\A
+RMCM0\Include -ID:\STM32\Keil_v5\ARM\CMSIS\Include --predefine="__MICROLIB SETA
+ 1" --predefine="__UVISION_VERSION SETA 528" --predefine="ARMCM0 SETA 1" --list
+=.\listings\startup_cmsdk_cm0.lst CORE\ARM\startup_CMSDK_CM0.s
 
 
 

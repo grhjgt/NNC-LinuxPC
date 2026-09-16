@@ -1,26 +1,90 @@
 /*
-* Copyright (C), 2023, NANOCHAP
-* File name:   ENS1_MTP.c
-* Description: MTP æ§åˆ¶é©±åŠ¨ (ä»…ä¿ç•™è¯»æ¨¡å¼åˆ‡æ¢ä¸åˆå§‹åŒ–, æ ¡å‡†å‚æ•°ç°ç”± HK32 ä¸‹å‘)
+*Copyright (C),2023 , NANOCHAP
+*File name:   ENS1_MTP.C         
+*Author:      
+*Version:     V1.0 
+*Date:        2023-11-                  
+*Description:  
+*Function List: 
+
+History: 
+1.V1.0
+Date:          
+Author: 
+Modification: ³õ°æ
+*/
+
+
+/*
+MTPËµÃ÷
+1¡¢MTP²¿·ÖÖ»ÄÜ°´¿éĞ´Èë,Ã¿¿éÓĞ1024×Ö½Ú´óĞ¡
+¿éµÄ±àºÅ£º
+SECTOR 0 : 0000H - 03FFH
+SECTOR 1 : 0400H - 07FFH
+SECTOR 2 : 0800H - 0BFFH
+SECTOR 3 : 0C00H - 0FFFH
+SECTOR 4 : 1000H - 13FFH
+SECTOR 5 : 1400H - 17FFH
+SECTOR 6 : 1800H - 1BFFH
+SECTOR 7 : 1C00H - 1FFFH 
 */
 
 #include "ENS1_MTP.h"
 
-// è¯»æ¨¡å¼å¼ºåˆ¶åˆ‡æ¢
-void MTP_enter_read_mode(void)
+uint16_t write_current_data[4]={0,0,0,0};
+STRUCT_MTP_TRIM MTP_FT_SET=
+{
+	.OSCA_FT = 0x10,      //Ä¬ÈÏÖµÎª 0X10
+	.OSC32K_RTRIM = 0x10, //Ä¬ÈÏÖµÎª 0X10
+	.BG_TRIM = 0x88,
+
+};
+
+uint8_t MTP_init(void)
 {
 	#ifdef ENS1_HSI_16MHz
 		CMSDK_MTPREG->MTP_CR = 0x00000001;
 	#elif ENS1_HSI_32MHz
 		CMSDK_MTPREG->MTP_CR = 0x00000003;
-	#else
-		CMSDK_MTPREG->MTP_CR = 0x00000003;
 	#endif
+
+	return  0;
 }
 
-// åˆå§‹åŒ– MTP
-uint8_t MTP_init(void)
-{
-	MTP_enter_read_mode();
+
+//MTPÄÚ±£´æµÄµçÁ÷¼ì²âÊı¾İ¶ÁÈ¡
+void flash_read(uint32_t start_addr,uint16_t *test_i){
+	uint16_t  result = 0;
+	result = HW16_REG(start_addr);
+	*test_i    = result ;
+}
+			
+//ÏòMTPÖĞĞ´ÈëÊı¾İ£¨½öÏŞÓÚÏòÓÃ»§×Ô¶¨Òå¿éĞ´Èë£¡£¡£¡£©
+//¿É×Ô¶¨Òå¶ÁĞ´µÄÇøÓòÎªMTPµÄµÚ0x1BC0¿é£¨MTP_BASE_ADDR + 0x6F00£©
+int8_t flash_buff_write(uint32_t start_addr, uint16_t *buff) {
+	HW32_REG(start_addr) =  ((uint32_t)((*(buff+1)<<16)&0xffff0000) + ((*buff)&0x0000ffff));	
+//	while(!(CMSDK_MTPREG->MTP_SR&0x00000002)){};			
+	if(HW32_REG(start_addr) != ((uint32_t)(*(buff+1)<<16) + *buff ))
+	{
+		printf("write error\n");
+		return -1;			
+	}
 	return 0;
 }
+
+int8_t flash_write_ctrl(uint16_t *buff , uint32_t start_addr){
+	CMSDK_MTPREG->MTP_CLR = 0xffffffff;   //SR¼Ä´æÆ÷
+	CMSDK_MTPREG->MTP_CR = 0x00000002;    //2µÈ´ıÖÜÆÚ
+	CMSDK_MTPREG->MTP_ACLR = 0x00000000;  //ÔÊĞíÈí¼ş¶ÁĞ´´Ósector0 -sector 6 £¨sector7 ×÷ÎªbootloaderÇø£©
+	CMSDK_MTPREG->MTP_KEYR = 0x5a5a5a5a;  //key
+	return flash_buff_write(start_addr, buff);
+}
+
+int8_t write_data(void){
+	uint16_t *wr_data = (uint16_t *)malloc(8*sizeof(uint8_t));
+	memcpy(wr_data , write_current_data, 8);
+	int8_t val = flash_write_ctrl(wr_data,DATA_SAVE_ADDR);  //µÚ 0x1BC0¿é
+	val = flash_write_ctrl(wr_data+2, DATA_SAVE_ADDR + 4);
+	return val;
+}	
+

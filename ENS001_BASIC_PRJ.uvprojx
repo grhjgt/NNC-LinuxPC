@@ -10,15 +10,15 @@
       <TargetName>ENS001_BASIC_PRJ</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pArmCC>5060528::V5.06 update 5 (build 528)::ARMCC</pArmCC>
-      <pCCUsed>5060528::V5.06 update 5 (build 528)::ARMCC</pCCUsed>
+      <pArmCC>5060750::V5.06 update 6 (build 750)::ARMCC</pArmCC>
+      <pCCUsed>5060750::V5.06 update 6 (build 750)::ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM0</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.Cortex_DFP.1.1.0</PackID>
-          <PackURL>https://www.keil.com/pack/</PackURL>
+          <PackID>ARM.CMSIS.5.5.1</PackID>
+          <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IRAM(0x20000000,0x00020000) IROM(0x00000000,0x00040000) CPUTYPE("Cortex-M0") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
@@ -186,8 +186,6 @@
             <uocXRam>0</uocXRam>
             <RvdsVP>0</RvdsVP>
             <RvdsMve>0</RvdsMve>
-            <RvdsCdeCp>0</RvdsCdeCp>
-            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -354,7 +352,7 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
-            <ClangAsOpt>4</ClangAsOpt>
+            <uClangAs>0</uClangAs>
             <VariousControls>
               <MiscControls></MiscControls>
               <Define></Define>
@@ -386,9 +384,9 @@
           <GroupName>USER</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
+              <FileName>mian.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\USER\main.c</FilePath>
+              <FilePath>.\USER\mian.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -434,16 +432,6 @@
               <FileName>ENS1_CLOCK.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\FWLIB\source\ENS1_CLOCK.c</FilePath>
-            </File>
-            <File>
-              <FileName>ENS_CURRENT_CALIBRATION.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\FWLIB\include\ENS_CURRENT_CALIBRATION.h</FilePath>
-            </File>
-            <File>
-              <FileName>ENS_CURRENT_CALIBRATION.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\FWLIB\source\ENS_CURRENT_CALIBRATION.c</FilePath>
             </File>
             <File>
               <FileName>retarget.c</FileName>

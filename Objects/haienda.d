@@ -1,0 +1,14 @@
+.\objects\haienda.o: haienda.c
+.\objects\haienda.o: .\FWLIB\include\ENS_CURRENT_CALIBRATION.h
+.\objects\haienda.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\haienda.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\haienda.o: .\CORE\INCLUDE\CMSDK_CM0.h
+.\objects\haienda.o: .\CORE\INCLUDE\core_cm0.h
+.\objects\haienda.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\haienda.o: .\CORE\INCLUDE\core_cmInstr.h
+.\objects\haienda.o: .\CORE\INCLUDE\core_cmFunc.h
+.\objects\haienda.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
+.\objects\haienda.o: .\USER\my_header.h
+.\objects\haienda.o: .\FWLIB\include\ENS1_UART.h
+.\objects\haienda.o: .\FWLIB\include\ENS1_CLOCK.h
+.\objects\haienda.o: .\FWLIB\include\ENS1_TIMER.h

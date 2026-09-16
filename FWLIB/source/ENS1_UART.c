@@ -343,10 +343,7 @@ void UART1_Handler(void) {
 					}else if(rev_len >=3 && rev_len< (3+rev_buf[2]+2) ){
 							rev_buf[rev_len] = rev_data;
 							rev_len++;
-                            // 只有当整个包接收完毕后，才置位完成标志
-                            if(rev_len == (3 + rev_buf[2] + 2)) {
- 							    rev_fin = 1;
-                            }
+							rev_fin = 1;
 					}
 	
 			    //UartPutc(CMSDK_UART1,rev_data);//把接收到的数据再发回去
