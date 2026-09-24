@@ -3,57 +3,52 @@
 <pre>
 <h1>µVision Build Log</h1>
 <h2>Tool Versions:</h2>
-IDE-Version: ¦ÌVision V5.28.0.0
-Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
-License Information: 1 1, 1, LIC=TIVFW-QCV3Y-QC5J5-GHUTH-UYXSK-1UVBD
+IDE-Version: ¦ÌVision V5.24.2.0
+Copyright (C) 2017 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: 1 1, 1, LIC=IK1BF-6US8H-NNNAF-6D0J7-2VWYL-X81C9
  
 Tool Versions:
-Toolchain:       MDK-ARM Plus  Version: 5.28.0.0
-Toolchain Path:  D:\STM32\Keil_v5\ARM\ARMCC\Bin
-C Compiler:      Armcc.exe V5.06 update 6 (build 750)
-Assembler:       Armasm.exe V5.06 update 6 (build 750)
-Linker/Locator:  ArmLink.exe V5.06 update 6 (build 750)
-Library Manager: ArmAr.exe V5.06 update 6 (build 750)
-Hex Converter:   FromElf.exe V5.06 update 6 (build 750)
-CPU DLL:         SARMCM3.DLL V5.28.0.0
-Dialog DLL:      DARMCM1.DLL V1.19.2.0
-Target DLL:      Segger\JL2CM3.dll V2.99.36.0
-Dialog DLL:      TARMCM1.DLL V1.14.1.0
+Toolchain:       MDK-ARM Plus  Version: 5.24.1
+Toolchain Path:  D:\WorkSpace\keil5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 5 (build 528)
+Assembler:       Armasm.exe V5.06 update 5 (build 528)
+Linker/Locator:  ArmLink.exe V5.06 update 5 (build 528)
+Library Manager: ArmAr.exe V5.06 update 5 (build 528)
+Hex Converter:   FromElf.exe V5.06 update 5 (build 528)
+CPU DLL:         SARMCM3.DLL V5.24.1
+Dialog DLL:      DARMCM1.DLL V1.18.0.0
+Target DLL:      Segger\JL2CM3.dll V2.99.26.0
+Dialog DLL:      TARMCM1.DLL V1.13.0.0
  
 <h2>Project:</h2>
-C:\Users\dell\Desktop\KLM\Ñ¦¹¤³ÌÐò\3¡¢ENS_UART_DEMO_run_ok_20260715\ENS001_BASIC_PRJ.uvprojx
-Project File Date:  05/15/2026
+D:\WorkSpace\EEG\Code\NNC6121\ENS001_BASIC_PRJ.uvprojx
+Project File Date:  09/17/2026
 
 <h2>Output:</h2>
-*** Using Compiler 'V5.06 update 6 (build 750)', folder: 'D:\STM32\Keil_v5\ARM\ARMCC\Bin'
-Rebuild target 'ENS001_BASIC_PRJ'
-assembling startup_CMSDK_CM0.s...
-compiling ENS1_UART.c...
-compiling ENS1_CLOCK.c...
-compiling retarget.c...
-compiling system_CMSDK_CM0.c...
-compiling ENS1_GPIO.c...
-compiling ENS1_MTP.c...
+*** Using Compiler 'V5.06 update 5 (build 528)', folder: 'D:\WorkSpace\keil5\ARM\ARMCC\Bin'
+Build target 'ENS001_BASIC_PRJ'
 compiling mian.c...
-USER\mian.c(308): warning:  #177-D: variable "data"  was declared but never referenced
+USER\mian.c(400): warning:  #177-D: variable "data"  was declared but never referenced
   	uint8_t  data[8] = {1,2,3,4,5,6,7,8};
-USER\mian.c: 1 warning, 0 errors
+USER\mian.c(112): warning:  #550-D: variable "g_lead_off_ch2"  was set but never used
+  static uint8_t  g_lead_off_ch2 = 0;
+USER\mian.c: 2 warnings, 0 errors
 linking...
-Program Size: Code=7840 RO-data=624 RW-data=336 ZI-data=544  
+Program Size: Code=8948 RO-data=628 RW-data=352 ZI-data=544  
 FromELF: creating hex file...
-After Build - User command #2: D:\STM32\Keil_v5\\ARM\ARMCC\bin\fromelf.exe --bin --output=Bin\ENS001_BASIC_PRJ.bin .\Objects\ENS001_BASIC_PRJ.axf
-".\Objects\ENS001_BASIC_PRJ.axf" - 0 Error(s), 1 Warning(s).
+After Build - User command #2: D:\WorkSpace\keil5\\ARM\ARMCC\bin\fromelf.exe --bin --output=Bin\ENS001_BASIC_PRJ.bin .\Objects\ENS001_BASIC_PRJ.axf
+".\Objects\ENS001_BASIC_PRJ.axf" - 0 Error(s), 2 Warning(s).
 
 <h2>Software Packages used:</h2>
 
 Package Vendor: ARM
-                http://www.keil.com/pack/ARM.CMSIS.5.5.1.pack
-                ARM.CMSIS.5.5.1
+                http://www.keil.com/pack/ARM.CMSIS.5.0.1.pack
+                ARM.CMSIS.5.0.1
                 CMSIS (Cortex Microcontroller Software Interface Standard)
 
 <h2>Collection of Component include folders:</h2>
   .\RTE\_ENS001_BASIC_PRJ
-  D:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include
+  D:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include
 
 <h2>Collection of Component Files used:</h2>
 Build Time Elapsed:  00:00:00

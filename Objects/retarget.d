@@ -1,9 +1,9 @@
 .\objects\retarget.o: FWLIB\source\retarget.c
-.\objects\retarget.o: D:\STM32\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\retarget.o: D:\STM32\Keil_v5\ARM\ARMCC\Bin\..\include\time.h
-.\objects\retarget.o: D:\STM32\Keil_v5\ARM\ARMCC\Bin\..\include\rt_misc.h
-.\objects\retarget.o: D:\STM32\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
-.\objects\retarget.o: D:\STM32\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\retarget.o: D:\WorkSpace\keil5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\retarget.o: D:\WorkSpace\keil5\ARM\ARMCC\Bin\..\include\time.h
+.\objects\retarget.o: D:\WorkSpace\keil5\ARM\ARMCC\Bin\..\include\rt_misc.h
+.\objects\retarget.o: D:\WorkSpace\keil5\ARM\ARMCC\Bin\..\include\stddef.h
+.\objects\retarget.o: D:\WorkSpace\keil5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\retarget.o: .\CORE\INCLUDE\CMSDK_CM0.h
 .\objects\retarget.o: .\CORE\INCLUDE\core_cm0.h
 .\objects\retarget.o: .\CORE\INCLUDE\core_cmInstr.h
