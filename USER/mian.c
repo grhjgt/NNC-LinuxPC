@@ -227,6 +227,9 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 }
 void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 {
+	/* 先停驱动。波形和 ISEL 写 0 时电流仍是 (0+1)*(0+1)*33µA，电极还贴着会灌进脑电 */
+	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0;
+
 	if (CMSDK_WAVEGEN_DRVA==WAVE_GEN_DRVA_BLK0){
 		WAVE_GEN_DRVC_BLK5->WAVE_GEN_DRV_ISEL_REG=0;	// BLK5 driver C is for pair 0,low 3 bit for unit of current
 		}
