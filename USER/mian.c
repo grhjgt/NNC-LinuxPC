@@ -101,19 +101,20 @@ float g_freq = 10.0;
 float g_current = 10.0;
 volatile uint8_t g_enable_NNC6121_HSE = 0;
 
-/* SCH-260515: U1/U2 TLV217 collectors -> GPIO19 / GPIO22.
-   Firmware only drives WAVE_GEN_DRVA_BLK0 (STIMU0/STIMU1). */
+/* SCH-260515: U1 光耦集电极 -> GPIO19。只驱动 WAVE_GEN_DRVA_BLK0。
+   硬件须同时满足，否则 0.1mA/100Hz 开路和贴合的低电平宽度分不开：
+   R166（集电极上拉）= 220kΩ，R172（LED 并联）= 100kΩ，拆掉 C3（22nF）。
+   C3 串在 LED 旁路上，脱落时的电压跳变会经它点亮 LED。 */
 #define LOD_GPIO_CH0          GPIO_19
 #define LOD_GPIO_CH2          GPIO_22
 #define LOD_WIN_MIN_MS        200u
-/* 2mA 闭路方波低电平约 0V，高电平只有 1V 多，GPIO 高门限够不着，全程读成 0。
-   这是贴合。开路被上拉拉高，只有不到 1ms 的毛刺。连续低电平达到 lod_low_min_ticks() 算贴合。 */
+/* 连续低电平达到 lod_low_min_ticks() 算贴合。 */
 #define LOD_SAMPLE_HZ         10000u
 #define LOD_TICKS_PER_MS      (LOD_SAMPLE_HZ / 1000u)
 /* R172=100k 后 0.1mA/10Hz 闭路每周期低电平约 24ms（占 24%），电流越大越宽。
-   门限取周期的 12%，10Hz 即 12ms；高频不低于 1.5ms，仍高于开路毛刺。 */
+   门限取周期的 12%，10Hz 即 12ms；高频不低于 2ms。0.1mA/100Hz 开路约 1.6ms，贴合约 2.6ms。 */
 #define LOD_LOW_MIN_PCT       12u
-#define LOD_LOW_FLOOR_TICKS   15u
+#define LOD_LOW_FLOOR_TICKS   20u
 /* 慢沿过门限时会抖出 0.1~0.2ms 的高电平，不打断这段低电平 */
 #define LOD_HIGH_GAP_TICKS    2u
 /* 连续两个窗都不达标才切输出，单窗干扰不误停 */
@@ -314,7 +315,7 @@ static uint32_t lod_age_ms(uint32_t now, uint32_t last)
 }
 
 /* 每 100us 读一次 GPIO19，只记最长连续低电平。
-   闭路时脚被拉在高门限以下，这段低电平贯穿整个周期；开路毛刺撑不满 1.5ms。
+   闭路时脚被拉在高门限以下；开路毛刺不到 2ms。
    g_tick_ms 仍是毫秒，给统计窗用。 */
 void SysTick_Handler(void)
 {
