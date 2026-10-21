@@ -592,7 +592,8 @@ int main(){
 	lod_uplink(0xFF);
 
 	while(1){
-		LOD_Proc();
+		/* 测试分支：不判脱落、不切输出、不上报开路，开始刺激后一直输出，只用示波器看 GPIO19 */
+		//LOD_Proc();
 		//Uart_Send(CMSDK_UART1,data,7);
 		while(rev_fin && rev_len >0){
 			  //check crc
