@@ -106,43 +106,24 @@ volatile uint8_t g_enable_NNC6121_HSE = 0;
 #define LOD_GPIO_CH0          GPIO_19
 #define LOD_GPIO_CH2          GPIO_22
 #define LOD_WIN_MIN_MS        200u
-/* 档位 1..4 当作 0.1-0.4mA。探测固定档位 5（0.5mA），电流单位仍是 wavegen 里的 1 档。
-   判法同 1af713b 的 nnc_contact_check：有完整低脉冲=贴合，低电平中断超过两个周期=开路。 */
-#define LOD_LOW_CURRENT_MAX    4u
-#define LOD_PROBE_LEVEL        5.0f
-#define LOD_PROBE_FREQ_HZ      10u
-/* 10Hz 下两个周期是 200ms。稳定 100ms，再观察 300ms（够两个完整低脉冲）。
-   贴合确认前不关驱动，避免治疗电流被拉成一段 0。 */
-#define LOD_PROBE_SETTLE_MS    100u
-#define LOD_PROBE_OBSERVE_MS   300u
-#define LOD_PROBE_REPEAT_MS    4000u
-#define LOD_PROBE_IDLE         0u
-#define LOD_PROBE_SETTLE       1u
-#define LOD_PROBE_OBS          2u
-#define LOD_PROBE_DONE         3u
-#define LOD_PROBE_RUN          4u
-#define LOD_RES_OFF            1u
-#define LOD_RES_UNKNOWN        2u
-#define LOD_RES_ON             3u
+/* 2mA 闭路方波低电平约 0V，高电平只有 1V 多，GPIO 高门限够不着，全程读成 0。
+   这是贴合。开路被上拉拉高，只有不到 1ms 的毛刺。连续低电平达到 LOD_LOW_MIN_MS 算贴合。 */
+#define LOD_SAMPLE_HZ         10000u
+#define LOD_TICKS_PER_MS      (LOD_SAMPLE_HZ / 1000u)
+#define LOD_LOW_MIN_MS        3u
 
 volatile uint32_t g_tick_ms = 0;
 static volatile uint8_t  g_stim_running = 0;
 /* 0=刺激中贴合, 1=脱落或电平卡死, 0xFF=未在刺激 */
 static uint8_t  g_lead_off_ch0 = 0xFF;
 static uint8_t  g_lead_off_ch2 = 0;
-static volatile uint32_t s_last_low_ch0_ms = 0;
-static volatile uint32_t s_last_high_ch0_ms = 0;
+static volatile uint32_t s_sample_cnt = 0;
+static volatile uint32_t s_low_run = 0;
+static volatile uint32_t s_max_low_run = 0;
+static uint8_t s_sub_ms = 0;
+static uint32_t s_duty_tick = 0;
 static uint32_t s_lod_arm_tick = 0;
 static uint8_t s_open_latched = 0;
-static volatile uint8_t s_probe = LOD_PROBE_IDLE;
-static uint32_t s_probe_t0 = 0;
-static uint32_t s_probe_next = 0;
-static volatile uint8_t s_probe_result = 0;
-static volatile uint32_t s_obs_low_ms = 0;
-static volatile uint32_t s_obs_high_ms = 0;
-static volatile uint16_t s_obs_pulses = 0;
-static volatile uint32_t s_obs_high_n = 0;
-static volatile uint8_t s_obs_low_ip = 0;
 
 void Delay_268ms( uint16_t time_ms )
 {
@@ -313,16 +294,8 @@ void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 		SysHseSet();
 }
 
-static void lod_note_level(uint8_t level, uint32_t now)
-{
-    if (level == 0) {
-        s_last_low_ch0_ms = now;
-    } else {
-        s_last_high_ch0_ms = now;
-    }
-}
-
-/* 时间戳可能比本次采样的 now 新 1ms，倒退时按 0 处理，避免误判脱落 */
+/* now、last 都取自 g_tick_ms。last 比 now 新（两次读取跨过 1ms，或计数回绕）时返回 0，
+   调用方继续等满窗，不会把倒退当成超长间隔去判脱落。 */
 static uint32_t lod_age_ms(uint32_t now, uint32_t last)
 {
     if ((int32_t)(now - last) < 0) {
@@ -331,113 +304,51 @@ static uint32_t lod_age_ms(uint32_t now, uint32_t last)
     return now - last;
 }
 
-static uint8_t lod_low_current(void)
-{
-    uint8_t current = (uint8_t)g_current;
-    return (current >= 1u && current <= LOD_LOW_CURRENT_MAX);
-}
-
-/* 0.5mA、10Hz。电流单位在 wavegen_driverA_sine_test 内被固定成 1 档。 */
-static void lod_drive_probe(void)
-{
-    float saved_current = g_current;
-    float saved_freq = g_freq;
-
-    g_current = LOD_PROBE_LEVEL;
-    g_freq = LOD_PROBE_FREQ_HZ;
-    wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0, 3);
-    g_current = saved_current;
-    g_freq = saved_freq;
-}
-
-static uint32_t lod_probe_gap_ms(void)
-{
-    uint32_t two_periods = (2000u + LOD_PROBE_FREQ_HZ - 1u) / LOD_PROBE_FREQ_HZ;
-    return (two_periods < LOD_WIN_MIN_MS) ? LOD_WIN_MIN_MS : two_periods;
-}
-
-static void lod_probe_finish(uint8_t result)
-{
-    if (result != LOD_RES_ON) {
-        WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_CTRL_REG = 0;
-    }
-    s_probe_result = result;
-    s_probe = LOD_PROBE_DONE;
-}
-
+/* 每 100us 读一次 GPIO19，只记最长连续低电平。
+   闭路时脚被拉在高门限以下，这段低电平贯穿整个周期；开路毛刺撑不满 3ms。
+   g_tick_ms 仍是毫秒，给统计窗用。 */
 void SysTick_Handler(void)
 {
     uint8_t level;
-    uint32_t now;
-    uint32_t gap;
 
-    g_tick_ms++;
-    now = g_tick_ms;
+    if (++s_sub_ms >= LOD_TICKS_PER_MS) {
+        s_sub_ms = 0;
+        g_tick_ms++;
+    }
+    if (!g_stim_running) {
+        return;
+    }
     level = GPIO_GetInputValue(LOD_GPIO_CH0);
-    lod_note_level(level, now);
-
-    if (s_probe == LOD_PROBE_SETTLE) {
-        if ((uint32_t)(now - s_probe_t0) >= LOD_PROBE_SETTLE_MS) {
-            s_obs_low_ms = now;
-            s_obs_high_ms = now;
-            s_obs_pulses = 0;
-            s_obs_high_n = 0;
-            s_obs_low_ip = 0;
-            s_probe = LOD_PROBE_OBS;
-        }
-        return;
-    }
-    if (s_probe != LOD_PROBE_OBS) {
-        return;
-    }
-
+    s_sample_cnt++;
     if (level == 0) {
-        s_obs_low_ms = now;
-        s_obs_low_ip = 1;
+        s_low_run++;
+        if (s_low_run > s_max_low_run) {
+            s_max_low_run = s_low_run;
+        }
     } else {
-        s_obs_high_n++;
-        s_obs_high_ms = now;
-        if (s_obs_low_ip) {
-            s_obs_pulses++;
-            s_obs_low_ip = 0;
-        }
-    }
-
-    gap = lod_probe_gap_ms();
-    if ((uint32_t)(now - s_obs_low_ms) > gap) {
-        lod_probe_finish(LOD_RES_OFF);
-        return;
-    }
-    if ((uint32_t)(now - s_obs_high_ms) > gap) {
-        lod_probe_finish(LOD_RES_UNKNOWN);
-        return;
-    }
-    if ((uint32_t)(now - s_probe_t0) >= (LOD_PROBE_SETTLE_MS + LOD_PROBE_OBSERVE_MS)) {
-        if (s_obs_high_n != 0u && s_obs_pulses >= 2u) {
-            lod_probe_finish(LOD_RES_ON);
-        } else {
-            lod_probe_finish(LOD_RES_UNKNOWN);
-        }
+        s_low_run = 0;
     }
 }
 
-/* 双边沿。不走 EXTI_GPIO_Init：那个函数会打开内部下拉，和板上的上拉对着干 */
+/* GPIO16–23 共用这个入口，当前只开了 GPIO19 的上升沿和下降沿。
+   两沿挂起不在同一个寄存器，进一次中断可能两沿都置上，都要清掉，否则会反复进来。
+   2mA 开路也有窄毛刺，沿本身不代表贴合，脉宽在 SysTick_Handler 里量。
+   不走 EXTI_GPIO_Init：那个函数会打开内部下拉，和板上的上拉对着干。 */
 void GPIO16_23_Handler(void)
 {
     uint32_t rise = CMSDK_EXTI->RISE_PEND_STS;
     uint32_t fall = CMSDK_EXTI->FALL_PEND_STS;
-    uint32_t now = g_tick_ms;
 
+    /* 先读再清。写 1 只清对应位，别的 GPIO 挂起不动 */
     if (fall & (1u << EXTI_GPIO19)) {
-        s_last_low_ch0_ms = now;
         CMSDK_EXTI->FALL_PEND_CLR = (1u << EXTI_GPIO19);
     }
     if (rise & (1u << EXTI_GPIO19)) {
-        s_last_high_ch0_ms = now;
         CMSDK_EXTI->RISE_PEND_CLR = (1u << EXTI_GPIO19);
     }
 }
 
+/* 统计窗：两个刺激周期，且不少于 LOD_WIN_MIN_MS。频率低于 1Hz 按 1Hz，避免除零。 */
 static uint32_t lod_window_ms(uint8_t freq_hz)
 {
     uint32_t win;
@@ -451,66 +362,39 @@ static uint32_t lod_window_ms(uint8_t freq_hz)
     return win;
 }
 
+/* 主动上报给主控，不再等小程序来查。0xFF=开机待机，1=刺激中因脱落进入待机。
+   主控收到后若蓝牙已连接，把这一帧转给小程序。 */
+static void lod_uplink(uint8_t state)
+{
+    send_buf[0] = 0xA5;
+    send_buf[1] = 0x0A;
+    send_buf[2] = 0x02;
+    send_buf[3] = state;
+    send_buf[4] = 0;
+    send_buf[5] = crc8_calc(send_buf, 5);
+    send_buf[6] = 0x5A;
+    Uart_Send(CMSDK_UART1, send_buf, 7);
+}
+
+/* 脱落时停输出并进入待机，同时上发一次。已经停过就直接返回。 */
 static void lod_cut_output(void)
 {
     if (s_open_latched) {
         return;
     }
     s_open_latched = 1;
-    g_lead_off_ch0 = 1;
     wavegen_Stop(WAVE_GEN_DRVA_BLK0);
-}
-
-static void lod_probe_begin(uint32_t now)
-{
-    s_probe_result = 0;
-    s_probe_t0 = now;
-    s_probe = LOD_PROBE_SETTLE;
-    g_stim_running = 1;
-    g_lead_off_ch0 = 0;
+    g_stim_running = 0;
+    g_lead_off_ch0 = 0xFF;
     g_lead_off_ch2 = 0;
-    lod_drive_probe();
+    s_sample_cnt = 0;
+    s_low_run = 0;
+    s_max_low_run = 0;
+    lod_uplink(1);
 }
 
-static void lod_probe_proc(uint32_t now)
-{
-    uint8_t result;
-
-    g_lead_off_ch2 = 0;
-    if (s_probe == LOD_PROBE_DONE) {
-        result = s_probe_result;
-        s_probe_result = 0;
-        if (result == LOD_RES_ON) {
-            wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0, 3);
-            s_last_low_ch0_ms = now;
-            s_last_high_ch0_ms = now;
-            s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq);
-            s_probe = LOD_PROBE_RUN;
-            s_probe_next = now + LOD_PROBE_REPEAT_MS;
-            g_lead_off_ch0 = 0;
-            return;
-        }
-        s_probe = LOD_PROBE_IDLE;
-        lod_cut_output();
-        return;
-    }
-
-    if (s_probe == LOD_PROBE_RUN) {
-        g_lead_off_ch0 = 0;
-        if ((int32_t)(now - s_probe_next) >= 0) {
-            lod_probe_begin(now);
-        }
-        return;
-    }
-
-    if (s_probe == LOD_PROBE_IDLE) {
-        lod_probe_begin(now);
-        return;
-    }
-
-    g_lead_off_ch0 = 0;
-}
-
+/* 刺激开始：先报贴合，计数清零，并空出整整一个统计窗再允许判定。
+   刚启动时波形还没起来，立刻统计会把空窗当成开路。 */
 static void lod_mark_stim_start(void)
 {
     uint32_t now = g_tick_ms;
@@ -518,23 +402,26 @@ static void lod_mark_stim_start(void)
     g_stim_running = 1;
     g_lead_off_ch0 = 0;
     g_lead_off_ch2 = 0;
-    s_last_low_ch0_ms = now;
-    s_last_high_ch0_ms = now;
+    s_sample_cnt = 0;
+    s_low_run = 0;
+    s_max_low_run = 0;
+    s_duty_tick = now;
     s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq);
-    s_probe = LOD_PROBE_IDLE;
-    s_probe_result = 0;
 }
 
+/* 上位机停刺激。没有光耦电流，不能再报贴合或脱落，状态回到 0xFF，并放开脱落锁存。 */
 static void lod_mark_stim_stop(void)
 {
     g_stim_running = 0;
     g_lead_off_ch0 = 0xFF;
     g_lead_off_ch2 = 0;
+    s_sample_cnt = 0;
+    s_low_run = 0;
+    s_max_low_run = 0;
     s_open_latched = 0;
-    s_probe = LOD_PROBE_IDLE;
-    s_probe_result = 0;
 }
 
+/* GPIO19/GPIO22 配成无上下拉输入。只打开 GPIO19 双边沿；GPIO22 本版不参与判定。 */
 void LOD_Init(void)
 {
     GPIO_AnalogChannel_Control(LOD_GPIO_CH0, DISABLE);
@@ -545,6 +432,7 @@ void LOD_Init(void)
                  OUTPUT_FAST, PDRV_4mA, ENABLE);
     GPIO_IO_Init(LOD_GPIO_CH2, INPUT, GPIO_OType_PP, GPIO_NOPULL,
                  OUTPUT_FAST, PDRV_4mA, ENABLE);
+    /* 先关中断并清掉上电残留的沿挂起，再开下降沿、上升沿和中断线，最后才进 NVIC */
     NVIC_DisableIRQ(GPIO16_23_IRQn);
     NVIC_ClearPendingIRQ(GPIO16_23_IRQn);
     CMSDK_EXTI->FALL_PEND_CLR = (1u << EXTI_GPIO19);
@@ -557,16 +445,17 @@ void LOD_Init(void)
     CMSDK_ANAC->COMP0_CTRL &= ~(1u << 0);
     WAVE_GEN_DRVC_BLK5->WAVE_GEN_DRV_CTRL_REG &= ~1u;
     WAVE_GEN_DRVC_BLK7->WAVE_GEN_DRV_CTRL_REG &= ~1u;
-    SysTick_Config(APB_Clock_Freq / 1000u);
+    SysTick_Config(APB_Clock_Freq / LOD_SAMPLE_HZ);
 }
 
+/* 主循环调用。未刺激报 0xFF；已锁存脱落则保持停输出。
+   满窗之后：最长连续低电平达到 LOD_LOW_MIN_MS 判贴合，否则判脱落并切断。 */
 void LOD_Proc(void)
 {
     uint32_t now = g_tick_ms;
     uint32_t win;
-
-    lod_note_level(GPIO_GetInputValue(LOD_GPIO_CH0), now);
-    now = g_tick_ms;
+    uint32_t n;
+    uint32_t max_run;
 
     /* 没在输出时没有光耦电流，不能报贴合 */
     if (!g_stim_running) {
@@ -580,12 +469,6 @@ void LOD_Proc(void)
         return;
     }
 
-    if (lod_low_current()) {
-        lod_probe_proc(now);
-        return;
-    }
-    s_probe = LOD_PROBE_IDLE;
-
     if ((int32_t)(now - s_lod_arm_tick) < 0) {
         g_lead_off_ch0 = 0;
         g_lead_off_ch2 = 0;
@@ -593,9 +476,25 @@ void LOD_Proc(void)
     }
 
     win = lod_window_ms((uint8_t)g_freq);
-    /* 开路会长时间没有低电平；脚被拉死会长时间没有高电平 */
-    g_lead_off_ch0 = (lod_age_ms(now, s_last_low_ch0_ms) > win ||
-                      lod_age_ms(now, s_last_high_ch0_ms) > win) ? 1 : 0;
+    if (lod_age_ms(now, s_duty_tick) < win) {
+        return;
+    }
+
+    __disable_irq();
+    n = s_sample_cnt;
+    max_run = s_max_low_run;
+    s_sample_cnt = 0;
+    s_low_run = 0;
+    s_max_low_run = 0;
+    __enable_irq();
+    s_duty_tick = now;
+
+    /* 样本不够不判，避免半窗被当成开路 */
+    if (n < (win * LOD_TICKS_PER_MS / 2u)) {
+        return;
+    }
+
+    g_lead_off_ch0 = (max_run < (LOD_LOW_MIN_MS * LOD_TICKS_PER_MS)) ? 1 : 0;
     g_lead_off_ch2 = 0;
     if (g_lead_off_ch0 == 1) {
         lod_cut_output();
@@ -656,7 +555,8 @@ int main(){
 		CMSDK_ANAC->BOOST_CTRL =0x77213;
 		CMSDK_ANAC->PMU_CTRL = 0x10;
 	LOD_Init();
-	
+	lod_uplink(0xFF);
+
 	while(1){
 		LOD_Proc();
 		//Uart_Send(CMSDK_UART1,data,7);
@@ -683,12 +583,8 @@ int main(){
           for(count = 0 ; count < 200; count++){;}
 						
 					Uart_Send(CMSDK_UART1,send_buf,send_len);
-					if (lod_low_current()) {
-						lod_probe_begin(g_tick_ms);
-					} else {
-						wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0,3);
-						lod_mark_stim_start();
-					}
+					wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0,3);
+					lod_mark_stim_start();
 				}else if(rev_buf[1] == 0x00 && rev_buf[2] == 0x01 && rev_buf[3] == 0x02 ){//pause
 				  send_buf[0]=0xA5;
 				  send_buf[1]=0x09 ;
@@ -755,17 +651,6 @@ int main(){
 					for(count = 0 ; count < 200; count++){;}
 						
 					Uart_Send(CMSDK_UART1,send_buf,send_len);	
-				}else if(rev_buf[1] == 0x04 && rev_buf[2] == 0x01){
-					send_buf[0]=0xA5;
-					send_buf[1]=0x0A;
-					send_buf[2]=0x02;
-					send_buf[3]=g_lead_off_ch0; /* 0=贴合 1=脱落 0xFF=未在刺激 */
-					send_buf[4]=(uint8_t)s_obs_pulses; /* 0.5mA 探测里数到的完整低脉冲 */
-					send_buf[5]=crc8_calc(send_buf,5);
-					send_buf[6]=0x5A;
-					send_len = 7;
-					for(count = 0 ; count < 100; count++){;}
-					Uart_Send(CMSDK_UART1,send_buf,send_len);
 				}
 		    
 			  rev_len = 0;
