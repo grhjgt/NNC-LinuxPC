@@ -107,10 +107,17 @@ volatile uint8_t g_enable_NNC6121_HSE = 0;
 #define LOD_GPIO_CH2          GPIO_22
 #define LOD_WIN_MIN_MS        200u
 /* 2mA 闭路方波低电平约 0V，高电平只有 1V 多，GPIO 高门限够不着，全程读成 0。
-   这是贴合。开路被上拉拉高，只有不到 1ms 的毛刺。连续低电平达到 LOD_LOW_MIN_MS 算贴合。 */
+   这是贴合。开路被上拉拉高，只有不到 1ms 的毛刺。连续低电平达到 lod_low_min_ticks() 算贴合。 */
 #define LOD_SAMPLE_HZ         10000u
 #define LOD_TICKS_PER_MS      (LOD_SAMPLE_HZ / 1000u)
-#define LOD_LOW_MIN_MS        3u
+/* R172=100k 后 0.1mA/10Hz 闭路每周期低电平约 24ms（占 24%），电流越大越宽。
+   门限取周期的 12%，10Hz 即 12ms；高频不低于 1.5ms，仍高于开路毛刺。 */
+#define LOD_LOW_MIN_PCT       12u
+#define LOD_LOW_FLOOR_TICKS   15u
+/* 慢沿过门限时会抖出 0.1~0.2ms 的高电平，不打断这段低电平 */
+#define LOD_HIGH_GAP_TICKS    2u
+/* 连续两个窗都不达标才切输出，单窗干扰不误停 */
+#define LOD_OPEN_WINDOWS      2u
 
 volatile uint32_t g_tick_ms = 0;
 static volatile uint8_t  g_stim_running = 0;
@@ -120,6 +127,8 @@ static uint8_t  g_lead_off_ch2 = 0;
 static volatile uint32_t s_sample_cnt = 0;
 static volatile uint32_t s_low_run = 0;
 static volatile uint32_t s_max_low_run = 0;
+static volatile uint8_t  s_high_run = 0;
+static uint8_t s_open_cnt = 0;
 static uint8_t s_sub_ms = 0;
 static uint32_t s_duty_tick = 0;
 static uint32_t s_lod_arm_tick = 0;
@@ -305,7 +314,7 @@ static uint32_t lod_age_ms(uint32_t now, uint32_t last)
 }
 
 /* 每 100us 读一次 GPIO19，只记最长连续低电平。
-   闭路时脚被拉在高门限以下，这段低电平贯穿整个周期；开路毛刺撑不满 3ms。
+   闭路时脚被拉在高门限以下，这段低电平贯穿整个周期；开路毛刺撑不满 1.5ms。
    g_tick_ms 仍是毫秒，给统计窗用。 */
 void SysTick_Handler(void)
 {
@@ -321,10 +330,13 @@ void SysTick_Handler(void)
     level = GPIO_GetInputValue(LOD_GPIO_CH0);
     s_sample_cnt++;
     if (level == 0) {
+        s_high_run = 0;
         s_low_run++;
         if (s_low_run > s_max_low_run) {
             s_max_low_run = s_low_run;
         }
+    } else if (s_high_run < LOD_HIGH_GAP_TICKS) {
+        s_high_run++;
     } else {
         s_low_run = 0;
     }
@@ -362,6 +374,20 @@ static uint32_t lod_window_ms(uint8_t freq_hz)
     return win;
 }
 
+/* 判贴合所需的最长连续低电平（采样点数）：周期的 LOD_LOW_MIN_PCT，不低于 LOD_LOW_FLOOR_TICKS */
+static uint32_t lod_low_min_ticks(uint8_t freq_hz)
+{
+    uint32_t t;
+    if (freq_hz < 1) {
+        freq_hz = 1;
+    }
+    t = LOD_SAMPLE_HZ / freq_hz * LOD_LOW_MIN_PCT / 100u;
+    if (t < LOD_LOW_FLOOR_TICKS) {
+        t = LOD_LOW_FLOOR_TICKS;
+    }
+    return t;
+}
+
 /* 主动上报给主控，不再等小程序来查。0xFF=开机待机，1=刺激中因脱落进入待机。
    主控收到后若蓝牙已连接，把这一帧转给小程序。 */
 static void lod_uplink(uint8_t state)
@@ -390,6 +416,7 @@ static void lod_cut_output(void)
     s_sample_cnt = 0;
     s_low_run = 0;
     s_max_low_run = 0;
+    s_open_cnt = 0;
     lod_uplink(1);
 }
 
@@ -405,6 +432,7 @@ static void lod_mark_stim_start(void)
     s_sample_cnt = 0;
     s_low_run = 0;
     s_max_low_run = 0;
+    s_open_cnt = 0;
     s_duty_tick = now;
     s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq);
 }
@@ -418,6 +446,7 @@ static void lod_mark_stim_stop(void)
     s_sample_cnt = 0;
     s_low_run = 0;
     s_max_low_run = 0;
+    s_open_cnt = 0;
     s_open_latched = 0;
 }
 
@@ -449,7 +478,7 @@ void LOD_Init(void)
 }
 
 /* 主循环调用。未刺激报 0xFF；已锁存脱落则保持停输出。
-   满窗之后：最长连续低电平达到 LOD_LOW_MIN_MS 判贴合，否则判脱落并切断。 */
+   满窗之后：最长连续低电平达到 lod_low_min_ticks() 判贴合；连续 LOD_OPEN_WINDOWS 个窗不达标判脱落并切断。 */
 void LOD_Proc(void)
 {
     uint32_t now = g_tick_ms;
@@ -494,9 +523,14 @@ void LOD_Proc(void)
         return;
     }
 
-    g_lead_off_ch0 = (max_run < (LOD_LOW_MIN_MS * LOD_TICKS_PER_MS)) ? 1 : 0;
     g_lead_off_ch2 = 0;
-    if (g_lead_off_ch0 == 1) {
+    if (max_run >= lod_low_min_ticks((uint8_t)g_freq)) {
+        s_open_cnt = 0;
+        g_lead_off_ch0 = 0;
+        return;
+    }
+    if (++s_open_cnt >= LOD_OPEN_WINDOWS) {
+        g_lead_off_ch0 = 1;
         lod_cut_output();
     }
 }
