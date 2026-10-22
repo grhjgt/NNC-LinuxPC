@@ -134,6 +134,18 @@ static uint8_t s_sub_ms = 0;
 static uint32_t s_duty_tick = 0;
 static uint32_t s_lod_arm_tick = 0;
 static uint8_t s_open_latched = 0;
+/* 1–4Hz 合成正弦：半周寄存器拉不到 1Hz，改 CLK 会截断。
+   每周期 128 点，按 sin 写电流，正半周只开正、负半周只开负。
+   1Hz 约 8ms 一点，4Hz 约 2ms 一点。5–100Hz 仍是硬件连续正弦。 */
+#define SLOW_HZ_MAX     4u
+#define SLOW_STEPS      128u
+#define SLOW_HOLD_US    8000u
+#define SLOW_MIN_US     2u
+static uint8_t s_slow_on = 0;
+static uint8_t s_slow_hz = 1;
+static uint8_t s_slow_idx = 0xFF;
+static uint8_t s_slow_neg = 0xFF;
+static uint32_t s_slow_t0 = 0;
 
 void Delay_268ms( uint16_t time_ms )
 {
@@ -189,24 +201,117 @@ int sine_data[64] =  {0x0c, 0x18, 0x25, 0x31, 0x3d, 0x4a, 0x55,
 											0xa1, 0x97, 0x8d, 0x83, 0x78, 0x6d, 0x61, 0x55, 0x4a,
 											0x3d, 0x31, 0x25, 0x18, 0x0c, 0x00};
 
+/* 1–4Hz 专用半正弦，从 0 起落到 0，避免起始台阶打成尖峰。电流仍按 g_current 缩放。 */
+static const int sine_slow_data[64] = {
+    0, 13, 25, 38, 51, 63, 75, 87, 99, 111, 122, 133, 144, 154, 164, 173,
+    183, 191, 199, 207, 214, 221, 227, 232, 237, 242, 245, 249, 251, 253, 254, 255,
+    255, 254, 253, 251, 249, 245, 242, 237, 232, 227, 221, 214, 207, 199, 191, 183,
+    173, 164, 154, 144, 133, 122, 111, 99, 87, 75, 63, 51, 38, 25, 13, 0
+};
+
 /* --------------------------------------------------------------- */
 /*  WAVE GEN Driver_A SINE test                                    */
 /* --------------------------------------------------------------- */
+
+/* 冷机上电时带隙还没稳，直接写 BOOST_EN 升压不会起来，这次开机里再点刺激也没有电流。
+   热机马上重启则带隙还有电，同样的写入可以成功。先开带隙，关掉再打开 EN。 */
+static void stim_power_on(void)
+{
+    CMSDK_SYSCON->APB_CLKEN |= 0x4000u | 0x1000u;
+    CMSDK_ANAC->PMU_CTRL = 0x10;
+    CMSDK_ANAC->BOOST_CTRL = 0x77212;
+    Delay_268ms(1);
+    CMSDK_ANAC->BOOST_CTRL = 0x77213;
+    CMSDK_ANAC->PMU_CTRL = 0x10;
+}
+
+static void wavegen_slow_apply(uint8_t idx)
+{
+    CMSDK_WAVE_GEN_TypeDef *drv = WAVE_GEN_DRVA_BLK0;
+    uint8_t neg = (idx >= 64u) ? 1u : 0u;
+    uint8_t half = neg ? (uint8_t)(idx - 64u) : idx;
+    int code = (int)((float)sine_slow_data[half] * 0.6587f * (g_current / 20) + 0.5f);
+    int i;
+
+    if (code < 0) {
+        code = 0;
+    } else if (code > 255) {
+        code = 255;
+    }
+    for (i = 0; i < 64; i++) {
+        drv->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
+        drv->WAVE_GEN_DRV_IN_WAVE_REG = code;
+    }
+    if (neg != s_slow_neg) {
+        if (neg) {
+            drv->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = SLOW_MIN_US;
+            drv->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = SLOW_HOLD_US;
+            drv->WAVE_GEN_DRV_CONFIG_REG = 0x0000004A;
+        } else {
+            drv->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = SLOW_HOLD_US;
+            drv->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = SLOW_MIN_US;
+            drv->WAVE_GEN_DRV_CONFIG_REG = 0x00000048;
+        }
+        s_slow_neg = neg;
+    }
+    drv->WAVE_GEN_DRV_CTRL_REG = 1;
+    s_slow_idx = idx;
+}
+
+static void wavegen_slow_proc(void)
+{
+    uint32_t elapsed;
+    uint32_t period_ms;
+    uint32_t pos;
+    uint8_t idx;
+
+    if (!s_slow_on) {
+        return;
+    }
+    elapsed = g_tick_ms - s_slow_t0;
+    period_ms = 1000u / s_slow_hz;
+    if (period_ms < 1u) {
+        period_ms = 1u;
+    }
+    pos = elapsed % period_ms;
+    idx = (uint8_t)(pos * SLOW_STEPS / period_ms);
+    if (idx >= SLOW_STEPS) {
+        idx = (uint8_t)(SLOW_STEPS - 1u);
+    }
+    if (idx != s_slow_idx) {
+        wavegen_slow_apply(idx);
+    }
+}
 
 int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int units){
     int return_val=0;
     int err_code=0; 
     int Current_units=0;
-	  float freq = 0;
     //puts("\nDRIVER A SINE TEST\n");
 
+    stim_power_on();
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_REST_T_REG = 0x00000000;   //???????
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_SILENT_T_REG = 0;  //??????
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CLK_FREQ_REG = 0x00000020;     //32MHZ ==PCLK
-	  freq = (500.00/g_freq)*1000.00;
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = freq;   ; //200us  //??????????
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = freq;  ; //500us  //????
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CONFIG_REG = 0x0000004A; //bit 0:rest enable  ?? ????????????????? ?????? 
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CLK_FREQ_REG = 0x00000020;
+    /* 5–100Hz：半周 500000/Hz。1–4Hz：短半周当电流保持，点数由 wavegen_slow_proc 写。 */
+    {
+        uint8_t hz = (g_freq < 1.0f) ? 1u : (g_freq > 100.0f) ? 100u : (uint8_t)g_freq;
+        uint32_t half_us = 500000u / hz;
+        uint32_t neg_us = half_us;
+        uint32_t cfg = 0x0000004A;
+        s_slow_on = 0;
+        if (hz <= SLOW_HZ_MAX) {
+            s_slow_hz = hz;
+            s_slow_on = 1;
+            half_us = SLOW_HOLD_US;
+            neg_us = SLOW_MIN_US;
+            cfg = 0x00000048;
+        }
+        CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_SILENT_T_REG = 0;
+        CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = half_us;
+        CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = neg_us;
+        CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CONFIG_REG = cfg;
+    }
+    /* 0x4A 连续正弦。1–4Hz 正半周 0x48、负半周 0x4A。 */ 
 															  //bit1:negative enable  ?? ???????????????????????????????????????
 	                                                          //bit2: silent enable   ?? ???????????????????
                                                               //bit3: source B enable 
@@ -223,9 +328,11 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 	}
 	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ISEL_REG=(Current_units&(0x7<<3))>>3; // high 3 bit for units of current
 
-    for(int i=0; i<64; i++){
-       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i; 
-       	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*0.6587 *(g_current/20) + 0.5f ) ;
+    if (!s_slow_on) {
+        for(int i=0; i<64; i++){
+            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
+            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*0.6587f *(g_current/20) + 0.5f );
+        }
     }
    
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_LIM_REG = 0x00000000;//  ????? 
@@ -236,7 +343,14 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
                                                                   //?????????????250??????????10????????????5 ??????
 		
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_INT_REG = 0x0;//  interrupt register set to 0
-    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0x00000001; //??? driver
+    if (s_slow_on) {
+        s_slow_t0 = g_tick_ms;
+        s_slow_idx = 0xFF;
+        s_slow_neg = 0xFF;
+        wavegen_slow_apply(0);
+    } else {
+        CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0x00000001; //??? driver
+    }
 
     /* Generate return value */
     if (err_code != 0) {
@@ -247,8 +361,12 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 
     return(return_val);
 }
+
 void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 {
+	s_slow_on = 0;
+	s_slow_idx = 0xFF;
+	s_slow_neg = 0xFF;
 	/* 先停驱动。波形和 ISEL 写 0 时电流仍是 (0+1)*(0+1)*33µA，电极还贴着会灌进脑电 */
 	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0;
 
@@ -375,13 +493,23 @@ static uint32_t lod_window_ms(uint8_t freq_hz)
     return win;
 }
 
+/* 1–4Hz 的正弦半周是 50ms，低电平宽度按 10Hz 算。 */
+static uint8_t lod_shape_hz(uint8_t freq_hz)
+{
+    if (freq_hz < 5u) {
+        return 10u;
+    }
+    if (freq_hz > 100u) {
+        return 100u;
+    }
+    return freq_hz;
+}
+
 /* 判贴合所需的最长连续低电平（采样点数）：周期的 LOD_LOW_MIN_PCT，不低于 LOD_LOW_FLOOR_TICKS */
 static uint32_t lod_low_min_ticks(uint8_t freq_hz)
 {
     uint32_t t;
-    if (freq_hz < 1) {
-        freq_hz = 1;
-    }
+    freq_hz = lod_shape_hz(freq_hz);
     t = LOD_SAMPLE_HZ / freq_hz * LOD_LOW_MIN_PCT / 100u;
     if (t < LOD_LOW_FLOOR_TICKS) {
         t = LOD_LOW_FLOOR_TICKS;
@@ -434,8 +562,10 @@ static void lod_mark_stim_start(void)
     s_low_run = 0;
     s_max_low_run = 0;
     s_open_cnt = 0;
+    s_open_latched = 0;
     s_duty_tick = now;
-    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq);
+    /* 开机后升压和第一周波形还没起来，只空一个统计窗会被当成开路并把输出切掉 */
+    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + 500u;
 }
 
 /* 上位机停刺激。没有光耦电流，不能再报贴合或脱落，状态回到 0xFF，并放开脱落锁存。 */
@@ -582,17 +712,18 @@ int main(){
 	UART_Init(CMSDK_UART1, &UART1_Init);
 	
     UART_ITConfig(CMSDK_UART1, &UART1_ITSet);
+	UART_RXCLR(CMSDK_UART1);
+	rev_len = 0;
+	rev_fin = 0;
 	
 	
 	CMSDK_SYSCON->APB_CLKEN = 0x4000|0x1000|CMSDK_SYSCON->APB_CLKEN;
-	//?????1-20%??=80% ,256??? ,10.5A ,26V,??????,???,????????????   no_??mos	
-		//????64???  10.5A   26V  ??????   
-		CMSDK_ANAC->BOOST_CTRL =0x77213;
-		CMSDK_ANAC->PMU_CTRL = 0x10;
+	stim_power_on();
 	LOD_Init();
 	lod_uplink(0xFF);
 
 	while(1){
+		wavegen_slow_proc();
 		LOD_Proc();
 		//Uart_Send(CMSDK_UART1,data,7);
 		while(rev_fin && rev_len >0){
@@ -652,6 +783,11 @@ int main(){
 					lod_mark_stim_stop();
 				}else if(rev_buf[1] == 0x02 && rev_buf[2] == 0x03){//set param
 					g_freq = rev_buf[4];
+					if (g_freq < 1.0f) {
+						g_freq = 1.0f;
+					} else if (g_freq > 100.0f) {
+						g_freq = 100.0f;
+					}
 					g_current = rev_buf[3];
 					send_buf[0]=0xA5;
 				  send_buf[1]=0x09 ;

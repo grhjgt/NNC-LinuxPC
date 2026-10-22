@@ -329,24 +329,34 @@ void UART1_Handler(void) {
 		ParamNumber=(CMSDK_UART1->FSR>>16) & 0x1f;
 		for(uint32_t i=0;i<ParamNumber;i++)
 		{
-					rev_data = CMSDK_UART1->RBR; //把接收到的数据取出来
-					if (rev_data == 0xA5 && rev_len == 0 )//head 
-					{
+					rev_data = CMSDK_UART1->RBR;
+					/* 上一帧主循环还没取走，不能覆写。启动帧只有 6 字节，FIFO 要 8 字节才触发，
+					   半帧就把 rev_fin 置上会让主循环用旧 CRC 把启动命令丢掉。 */
+					if (rev_fin) {
+						continue;
+					}
+					if (rev_data == 0xA5 && rev_len == 0) {
 							rev_buf[0] = 0xA5;
 							rev_len = 1;
-					}else if(rev_len == 1){//cmd  
+					} else if (rev_len == 1) {
 							rev_buf[1] = rev_data;
 							rev_len = 2;
-					}else if(rev_len == 2){//length
-						rev_buf[2] = rev_data;
-						rev_len = 3;
-					}else if(rev_len >=3 && rev_len< (3+rev_buf[2]+2) ){
+					} else if (rev_len == 2) {
+						if (rev_data > 8) {
+							rev_len = 0;
+						} else {
+							rev_buf[2] = rev_data;
+							rev_len = 3;
+						}
+					} else if (rev_len >= 3 && rev_len < (3 + rev_buf[2] + 2) && rev_len < 16) {
 							rev_buf[rev_len] = rev_data;
 							rev_len++;
-							rev_fin = 1;
+							if (rev_len == (3 + rev_buf[2] + 2)) {
+								rev_fin = 1;
+							}
+					} else {
+							rev_len = 0;
 					}
-	
-			    //UartPutc(CMSDK_UART1,rev_data);//把接收到的数据再发回去
 		}
 	}
 	CMSDK_UART1->IER |= CMSDK_UART_IER_RDAI_EN_Msk;//重新启用中断

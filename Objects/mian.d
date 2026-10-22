@@ -15,3 +15,4 @@
 .\objects\mian.o: .\FWLIB\include\ENS1_ANAC.h
 .\objects\mian.o: .\FWLIB\include\ENS1_GPIO.h
 .\objects\mian.o: .\FWLIB\include\ENS1_UART.h
+.\objects\mian.o: .\FWLIB\include\ENS1_EXTI.h

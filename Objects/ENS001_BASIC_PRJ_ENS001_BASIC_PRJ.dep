@@ -1,5 +1,5 @@
 Dependencies for Project 'ENS001_BASIC_PRJ', Target 'ENS001_BASIC_PRJ': (DO NOT MODIFY !)
-F (.\USER\mian.c)(0x6ACDF9CC)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\mian.o --omf_browse .\objects\mian.crf --depend .\objects\mian.d)
+F (.\USER\mian.c)(0x6AD88C9B)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\mian.o --omf_browse .\objects\mian.crf --depend .\objects\mian.d)
 I (USER\my_header.h)(0x6A06F0F8)
 I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
 I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
@@ -16,8 +16,9 @@ I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
 I (.\FWLIB\include\ENS1_ANAC.h)(0x6567EDE4)
 I (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)
 I (.\FWLIB\include\ENS1_UART.h)(0x672B085E)
+I (.\FWLIB\include\ENS1_EXTI.h)(0x67233924)
 F (.\FWLIB\include\ENS1_UART.h)(0x672B085E)()
-F (.\FWLIB\source\ENS1_UART.c)(0x6A226EFA)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_uart.o --omf_browse .\objects\ens1_uart.crf --depend .\objects\ens1_uart.d)
+F (.\FWLIB\source\ENS1_UART.c)(0x6AD88259)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_uart.o --omf_browse .\objects\ens1_uart.crf --depend .\objects\ens1_uart.d)
 I (.\USER\my_header.h)(0x6A06F0F8)
 I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
 I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
