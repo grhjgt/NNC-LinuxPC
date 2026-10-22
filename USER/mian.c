@@ -119,6 +119,8 @@ volatile uint8_t g_enable_NNC6121_HSE = 0;
 #define LOD_HIGH_GAP_TICKS    2u
 /* 连续两个窗都不达标才切输出，单窗干扰不误停 */
 #define LOD_OPEN_WINDOWS      2u
+/* 冷机升压起来前 GPIO 没有低脉冲，这段时间不准切输出 */
+#define LOD_BOOST_ARM_MS      2000u
 
 volatile uint32_t g_tick_ms = 0;
 static volatile uint8_t  g_stim_running = 0;
@@ -213,14 +215,11 @@ static const int sine_slow_data[64] = {
 /*  WAVE GEN Driver_A SINE test                                    */
 /* --------------------------------------------------------------- */
 
-/* 冷机上电时带隙还没稳，直接写 BOOST_EN 升压不会起来，这次开机里再点刺激也没有电流。
-   热机马上重启则带隙还有电，同样的写入可以成功。先开带隙，关掉再打开 EN。 */
+/* 与 d075b307 相同：只写 0x77213 打开 EN，不要先写 0x77212。
+   冷机先关 EN 再开，升压会整场起不来。 */
 static void stim_power_on(void)
 {
     CMSDK_SYSCON->APB_CLKEN |= 0x4000u | 0x1000u;
-    CMSDK_ANAC->PMU_CTRL = 0x10;
-    CMSDK_ANAC->BOOST_CTRL = 0x77212;
-    Delay_268ms(1);
     CMSDK_ANAC->BOOST_CTRL = 0x77213;
     CMSDK_ANAC->PMU_CTRL = 0x10;
 }
@@ -461,10 +460,8 @@ void SysTick_Handler(void)
     }
 }
 
-/* GPIO16–23 共用这个入口，当前只开了 GPIO19 的上升沿和下降沿。
-   两沿挂起不在同一个寄存器，进一次中断可能两沿都置上，都要清掉，否则会反复进来。
-   2mA 开路也有窄毛刺，沿本身不代表贴合，脉宽在 SysTick_Handler 里量。
-   不走 EXTI_GPIO_Init：那个函数会打开内部下拉，和板上的上拉对着干。 */
+/* GPIO16–23 共用这个入口。LOD_Init 已关掉 GPIO19 EXTI，正常不会进来。
+   若上电残留把沿挂起了，两沿都清掉，避免反复进中断把 UART 饿死。 */
 void GPIO16_23_Handler(void)
 {
     uint32_t rise = CMSDK_EXTI->RISE_PEND_STS;
@@ -564,8 +561,8 @@ static void lod_mark_stim_start(void)
     s_open_cnt = 0;
     s_open_latched = 0;
     s_duty_tick = now;
-    /* 开机后升压和第一周波形还没起来，只空一个统计窗会被当成开路并把输出切掉 */
-    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + 500u;
+    /* 升压未稳时没有光耦低脉冲。空一个统计窗再加 LOD_BOOST_ARM_MS，这段不切输出。 */
+    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + LOD_BOOST_ARM_MS;
 }
 
 /* 上位机停刺激。没有光耦电流，不能再报贴合或脱落，状态回到 0xFF，并放开脱落锁存。 */
@@ -581,7 +578,7 @@ static void lod_mark_stim_stop(void)
     s_open_latched = 0;
 }
 
-/* GPIO19/GPIO22 配成无上下拉输入。只打开 GPIO19 双边沿；GPIO22 本版不参与判定。 */
+/* GPIO19/GPIO22 配成无上下拉输入。GPIO22 本版不参与判定。 */
 void LOD_Init(void)
 {
     GPIO_AnalogChannel_Control(LOD_GPIO_CH0, DISABLE);
@@ -592,15 +589,15 @@ void LOD_Init(void)
                  OUTPUT_FAST, PDRV_4mA, ENABLE);
     GPIO_IO_Init(LOD_GPIO_CH2, INPUT, GPIO_OType_PP, GPIO_NOPULL,
                  OUTPUT_FAST, PDRV_4mA, ENABLE);
-    /* 先关中断并清掉上电残留的沿挂起，再开下降沿、上升沿和中断线，最后才进 NVIC */
+    /* 脉宽只在 SysTick 里采。不要开 GPIO19 双边沿 EXTI：C3 拆掉后空脚会抖，
+       和 UART1 同优先级把起始帧打掉。4be0880 没开这条 EXTI，关机一分钟后 Key4 仍有电流。 */
     NVIC_DisableIRQ(GPIO16_23_IRQn);
     NVIC_ClearPendingIRQ(GPIO16_23_IRQn);
+    CMSDK_EXTI->IMR &= ~(1u << EXTI_GPIO19);
+    CMSDK_EXTI->FTSR &= ~(1u << EXTI_GPIO19);
+    CMSDK_EXTI->RTSR &= ~(1u << EXTI_GPIO19);
     CMSDK_EXTI->FALL_PEND_CLR = (1u << EXTI_GPIO19);
     CMSDK_EXTI->RISE_PEND_CLR = (1u << EXTI_GPIO19);
-    CMSDK_EXTI->FTSR |= (1u << EXTI_GPIO19);
-    CMSDK_EXTI->RTSR |= (1u << EXTI_GPIO19);
-    CMSDK_EXTI->IMR |= (1u << EXTI_GPIO19);
-    NVIC_EnableIRQ(GPIO16_23_IRQn);
     /* 关掉上次比较器试验留下的脱落开关，避免它把输出钳在片内 */
     CMSDK_ANAC->COMP0_CTRL &= ~(1u << 0);
     WAVE_GEN_DRVC_BLK5->WAVE_GEN_DRV_CTRL_REG &= ~1u;
