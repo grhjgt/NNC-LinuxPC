@@ -1,90 +1,90 @@
 Dependencies for Project 'ENS001_BASIC_PRJ', Target 'ENS001_BASIC_PRJ': (DO NOT MODIFY !)
-F (.\USER\mian.c)(0x6AD9BBE0)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\mian.o --omf_browse .\objects\mian.crf --depend .\objects\mian.d)
-I (USER\my_header.h)(0x6A06F0F8)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (.\FWLIB\include\ENS1_MTP.h)(0x65605CD4)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdlib.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\string.h)(0x588B8344)
-I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
-I (.\FWLIB\include\ENS1_ANAC.h)(0x6567EDE4)
-I (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)
-I (.\FWLIB\include\ENS1_UART.h)(0x672B085E)
-I (.\FWLIB\include\ENS1_EXTI.h)(0x67233924)
-F (.\FWLIB\include\ENS1_UART.h)(0x672B085E)()
-F (.\FWLIB\source\ENS1_UART.c)(0x6AD88259)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_uart.o --omf_browse .\objects\ens1_uart.crf --depend .\objects\ens1_uart.d)
-I (.\USER\my_header.h)(0x6A06F0F8)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (.\FWLIB\include\ENS1_UART.h)(0x672B085E)
-I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
-I (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)
-F (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)()
-F (.\FWLIB\source\ENS1_GPIO.c)(0x67189884)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_gpio.o --omf_browse .\objects\ens1_gpio.crf --depend .\objects\ens1_gpio.d)
-I (.\USER\my_header.h)(0x6A06F0F8)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (.\FWLIB\include\ENS1_GPIO.h)(0x67234E9A)
-F (.\FWLIB\include\ENS1_MTP.h)(0x65605CD4)()
-F (.\FWLIB\source\ENS1_MTP.c)(0x6AAB5739)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_mtp.o --omf_browse .\objects\ens1_mtp.crf --depend .\objects\ens1_mtp.d)
-I (.\FWLIB\include\ENS1_MTP.h)(0x65605CD4)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdlib.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\string.h)(0x588B8344)
-I (.\USER\my_header.h)(0x6A06F0F8)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
-F (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)()
-F (.\FWLIB\source\ENS1_CLOCK.c)(0x68358348)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_clock.o --omf_browse .\objects\ens1_clock.crf --depend .\objects\ens1_clock.d)
-I (.\FWLIB\include\ENS1_CLOCK.h)(0x68358098)
-I (.\USER\my_header.h)(0x6A06F0F8)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\math.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-F (.\FWLIB\source\retarget.c)(0x6565495A)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\retarget.o --omf_browse .\objects\retarget.crf --depend .\objects\retarget.d)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdio.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\time.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\rt_misc.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stddef.h)(0x588B8344)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-F (.\CORE\system_CMSDK_CM0.c)(0x63648DE6)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DARMCM0 -DCORTEX_M0-o .\objects\system_cmsdk_cm0.o --omf_browse .\objects\system_cmsdk_cm0.crf --depend .\objects\system_cmsdk_cm0.d)
-I (D:\WorkSpace\keil5\ARM\ARMCC\include\stdint.h)(0x588B8344)
-I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x64D5ADE8)
-I (.\CORE\INCLUDE\core_cm0.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmInstr.h)(0x63648DE6)
-I (.\CORE\INCLUDE\core_cmFunc.h)(0x63648DE6)
-I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x63648DE6)
-F (.\CORE\ARM\startup_CMSDK_CM0.s)(0x6365EF56)(--cpu Cortex-M0 --li -g --apcs=interwork --pd "__MICROLIB SETA 1"-I.\RTE\_ENS001_BASIC_PRJ-ID:\WorkSpace\keil5\ARM\PACK\ARM\CMSIS\5.0.1\Device\ARM\ARMCM0\Include-ID:\WorkSpace\keil5\ARM\CMSIS\Include--pd "__UVISION_VERSION SETA 524" --pd "ARMCM0 SETA 1"--list .\listings\startup_cmsdk_cm0.lst --xref -o .\objects\startup_cmsdk_cm0.o --depend .\objects\startup_cmsdk_cm0.d)
+F (.\USER\mian.c)(0x6B031D68)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\mian.o --omf_browse .\objects\mian.crf --depend .\objects\mian.d)
+I (USER\my_header.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\math.h)(0x5CEB79D6)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_MTP.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdlib.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\string.h)(0x5CEB79E2)
+I (.\FWLIB\include\ENS1_CLOCK.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_ANAC.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_GPIO.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_UART.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_EXTI.h)(0x6B02DE82)
+F (.\FWLIB\include\ENS1_UART.h)(0x6B02DE82)()
+F (.\FWLIB\source\ENS1_UART.c)(0x6B031D05)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_uart.o --omf_browse .\objects\ens1_uart.crf --depend .\objects\ens1_uart.d)
+I (.\USER\my_header.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\math.h)(0x5CEB79D6)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_UART.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_CLOCK.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_GPIO.h)(0x6B02DE82)
+F (.\FWLIB\include\ENS1_GPIO.h)(0x6B02DE82)()
+F (.\FWLIB\source\ENS1_GPIO.c)(0x6B02DE82)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_gpio.o --omf_browse .\objects\ens1_gpio.crf --depend .\objects\ens1_gpio.d)
+I (.\USER\my_header.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\math.h)(0x5CEB79D6)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+I (.\FWLIB\include\ENS1_GPIO.h)(0x6B02DE82)
+F (.\FWLIB\include\ENS1_MTP.h)(0x6B02DE82)()
+F (.\FWLIB\source\ENS1_MTP.c)(0x6B02DE82)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_mtp.o --omf_browse .\objects\ens1_mtp.crf --depend .\objects\ens1_mtp.d)
+I (.\FWLIB\include\ENS1_MTP.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdlib.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\string.h)(0x5CEB79E2)
+I (.\USER\my_header.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\math.h)(0x5CEB79D6)
+F (.\FWLIB\include\ENS1_CLOCK.h)(0x6B02DE82)()
+F (.\FWLIB\source\ENS1_CLOCK.c)(0x6B02DE82)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\ens1_clock.o --omf_browse .\objects\ens1_clock.crf --depend .\objects\ens1_clock.d)
+I (.\FWLIB\include\ENS1_CLOCK.h)(0x6B02DE82)
+I (.\USER\my_header.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\math.h)(0x5CEB79D6)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+F (.\FWLIB\source\retarget.c)(0x6B02DE82)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\retarget.o --omf_browse .\objects\retarget.crf --depend .\objects\retarget.d)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\time.h)(0x5CEB79D6)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\rt_misc.h)(0x5CEB79D6)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stddef.h)(0x5CEB79E2)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+F (.\CORE\system_CMSDK_CM0.c)(0x6B02DE82)(--c99 -c --cpu Cortex-M0 -D__MICROLIB --li -g -O0 --apcs=interwork --split_sections -I .\CORE\INCLUDE -I .\USER -I .\FWLIB\include-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="528" -DARMCM0 -DCORTEX_M0-o .\objects\system_cmsdk_cm0.o --omf_browse .\objects\system_cmsdk_cm0.crf --depend .\objects\system_cmsdk_cm0.d)
+I (D:\STM32\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5CEB79E2)
+I (.\CORE\INCLUDE\CMSDK_CM0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cm0.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmInstr.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\core_cmFunc.h)(0x6B02DE82)
+I (.\CORE\INCLUDE\system_CMSDK_CM0.h)(0x6B02DE82)
+F (.\CORE\ARM\startup_CMSDK_CM0.s)(0x6B02DE82)(--cpu Cortex-M0 --li -g --apcs=interwork --pd "__MICROLIB SETA 1"-I.\RTE\_ENS001_BASIC_PRJ-ID:\STM32\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\Device\ARM\ARMCM0\Include-ID:\STM32\Keil_v5\ARM\CMSIS\Include--pd "__UVISION_VERSION SETA 528" --pd "ARMCM0 SETA 1"--list .\listings\startup_cmsdk_cm0.lst --xref -o .\objects\startup_cmsdk_cm0.o --depend .\objects\startup_cmsdk_cm0.d)

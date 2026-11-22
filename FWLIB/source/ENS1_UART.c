@@ -33,6 +33,10 @@ ENS1 uart特性说明
 #include "my_header.h"
 #include "ENS1_UART.h"
 #include "ENS1_GPIO.h"
+
+extern uint32_t get_hsi_us(void);
+extern volatile uint32_t g_rx_fin_us;
+
 UART_FifoStructrue UART1_Fifo = {
 	.level = bytes_8 ,
 	.DMA_Enable = false ,
@@ -352,6 +356,7 @@ void UART1_Handler(void) {
 							rev_buf[rev_len] = rev_data;
 							rev_len++;
 							if (rev_len == (3 + rev_buf[2] + 2)) {
+								g_rx_fin_us = get_hsi_us();
 								rev_fin = 1;
 							}
 					} else {

@@ -121,8 +121,12 @@ volatile uint8_t g_enable_NNC6121_HSE = 0;
 #define LOD_OPEN_WINDOWS      2u
 /* 冷机升压起来前 GPIO 没有低脉冲，这段时间不准切输出 */
 #define LOD_BOOST_ARM_MS      2000u
+/* 与主控 NNC_LOD_ENABLE=0 对齐：0=开路不主动切断本片输出，便于跨路/空载台架测试；1=恢复开路切输出 */
+#define LOD_CUT_ENABLE        0
 
 volatile uint32_t g_tick_ms = 0;
+volatile uint32_t g_tick_100us = 0;
+volatile uint32_t g_rx_fin_us = 0;
 static volatile uint8_t  g_stim_running = 0;
 /* 0=刺激中贴合, 1=脱落或电平卡死, 0xFF=未在刺激 */
 static uint8_t  g_lead_off_ch0 = 0xFF;
@@ -136,6 +140,7 @@ static uint8_t s_sub_ms = 0;
 static uint32_t s_duty_tick = 0;
 static uint32_t s_lod_arm_tick = 0;
 static uint8_t s_open_latched = 0;
+static uint8_t s_contact_ok = 0;
 /* 1–4Hz 合成正弦：半周寄存器拉不到 1Hz，改 CLK 会截断。
    每周期 128 点，按 sin 写电流，正半周只开正、负半周只开负。
    1Hz 约 8ms 一点，4Hz 约 2ms 一点。5–100Hz 仍是硬件连续正弦。 */
@@ -147,7 +152,40 @@ static uint8_t s_slow_on = 0;
 static uint8_t s_slow_hz = 1;
 static uint8_t s_slow_idx = 0xFF;
 static uint8_t s_slow_neg = 0xFF;
-static uint32_t s_slow_t0 = 0;
+static uint32_t s_slow_t0_us = 0;
+
+/* --------------------------------------------------------------- */
+/*  串口 1s 晶振同步与锁相环 (UART-DPLL: CMD=0x05)                   */
+/*  用主从控 STM32 的 8MHz 石英晶振 1s 信标校准本片 HSI RC 频偏，    */
+/*  并在四板统一对齐时刻将正弦相位锁定到 0° 过零点，消除跨板拍频。   */
+/* --------------------------------------------------------------- */
+static uint32_t s_hsi_us_per_sec = 1000000u;
+static uint8_t  s_hsi_calibrated = 0u;
+static uint8_t  s_sync_has_prev = 0u;
+static uint8_t  s_sync_last_seq = 0u;
+static uint32_t s_sync_last_target_us = 0u;
+static uint8_t  s_sync_pending = 0u;
+static uint8_t  s_sync_pending_seq = 0u;
+static uint32_t s_sync_target_us = 0u;
+
+/* 返回片内 HSI/32 基准下的微秒计数（与 WAVE_GEN_DRV_CLK_FREQ_REG=0x20 同源同频） */
+uint32_t get_hsi_us(void)
+{
+    uint32_t t1, t2, val;
+    uint32_t load = SysTick->LOAD;
+    do {
+        t1 = g_tick_100us;
+        val = SysTick->VAL;
+        t2 = g_tick_100us;
+    } while (t1 != t2);
+    return t1 * 100u + ((load - val) >> 5);
+}
+
+static void sync_reset_phase_state(void)
+{
+    s_sync_has_prev = 0u;
+    s_sync_pending = 0u;
+}
 
 void Delay_268ms( uint16_t time_ms )
 {
@@ -259,27 +297,82 @@ static void wavegen_slow_apply(uint8_t idx)
 
 static void wavegen_slow_proc(void)
 {
-    uint32_t elapsed;
-    uint32_t period_ms;
-    uint32_t pos;
+    uint32_t elapsed_us;
+    uint32_t period_us;
+    uint32_t pos_us;
     uint8_t idx;
 
     if (!s_slow_on) {
         return;
     }
-    elapsed = g_tick_ms - s_slow_t0;
-    period_ms = 1000u / s_slow_hz;
-    if (period_ms < 1u) {
-        period_ms = 1u;
+    elapsed_us = get_hsi_us() - s_slow_t0_us;
+    period_us = s_hsi_us_per_sec / s_slow_hz;
+    if (period_us < 1000u) {
+        period_us = 1000u;
     }
-    pos = elapsed % period_ms;
-    idx = (uint8_t)(pos * SLOW_STEPS / period_ms);
+    pos_us = elapsed_us % period_us;
+    idx = (uint8_t)((pos_us / 100u) * SLOW_STEPS / (period_us / 100u));
     if (idx >= SLOW_STEPS) {
         idx = (uint8_t)(SLOW_STEPS - 1u);
     }
     if (idx != s_slow_idx) {
         wavegen_slow_apply(idx);
     }
+}
+
+static void wavegen_sync_proc(void)
+{
+    uint32_t now_us;
+    uint32_t dt_us;
+    uint8_t hz;
+    uint32_t half_us;
+
+    if (!s_sync_pending) {
+        return;
+    }
+    now_us = get_hsi_us();
+    if ((int32_t)(now_us - s_sync_target_us) < 0) {
+        return;
+    }
+    s_sync_pending = 0u;
+
+    /* 1) 若与上一拍连续（间隔 1.000000s），用主控 8MHz 石英晶振校准本片 HSI 真实微秒数 */
+    if (s_sync_has_prev && ((uint8_t)(s_sync_pending_seq - s_sync_last_seq) == 1u)) {
+        dt_us = s_sync_target_us - s_sync_last_target_us;
+        if (dt_us >= 900000u && dt_us <= 1100000u) {
+            if (!s_hsi_calibrated) {
+                s_hsi_us_per_sec = dt_us;
+                s_hsi_calibrated = 1u;
+            } else {
+                s_hsi_us_per_sec = (s_hsi_us_per_sec * 3u + dt_us + 2u) >> 2;
+            }
+        }
+    }
+    s_sync_last_target_us = s_sync_target_us;
+    s_sync_last_seq = s_sync_pending_seq;
+    s_sync_has_prev = 1u;
+
+    if (!g_stim_running) {
+        return;
+    }
+
+    hz = (g_freq < 1.0f) ? 1u : (g_freq > 100.0f) ? 100u : (uint8_t)g_freq;
+    if (s_slow_on) {
+        if ((hz != 3u) || ((s_sync_pending_seq % 3u) == 0u)) {
+            s_slow_t0_us = s_sync_target_us;
+            s_slow_idx = 0xFF;
+            wavegen_slow_proc();
+        }
+        return;
+    }
+
+    /* 2) 5–100Hz 硬件正弦：每秒恰好含整数个周期 (hz 个周期)。
+          写入晶振校准后的半周期并在四板统一时刻对齐 0° 过零点相位。 */
+    half_us = (s_hsi_us_per_sec + hz) / (2u * hz);
+    WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_CTRL_REG = 0;
+    WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = half_us;
+    WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = half_us;
+    WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_CTRL_REG = 1;
 }
 
 int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int units){
@@ -291,10 +384,10 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
     stim_power_on();
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_REST_T_REG = 0x00000000;   //???????
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CLK_FREQ_REG = 0x00000020;
-    /* 5–100Hz：半周 500000/Hz。1–4Hz：短半周当电流保持，点数由 wavegen_slow_proc 写。 */
+    /* 5–100Hz：半周按校准后的 s_hsi_us_per_sec/(2*Hz) 计算。1–4Hz：短半周当电流保持，点数由 wavegen_slow_proc 写。 */
     {
         uint8_t hz = (g_freq < 1.0f) ? 1u : (g_freq > 100.0f) ? 100u : (uint8_t)g_freq;
-        uint32_t half_us = 500000u / hz;
+        uint32_t half_us = (s_hsi_us_per_sec + hz) / (2u * hz);
         uint32_t neg_us = half_us;
         uint32_t cfg = 0x0000004A;
         s_slow_on = 0;
@@ -342,8 +435,9 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
                                                                   //?????????????250??????????10????????????5 ??????
 		
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_INT_REG = 0x0;//  interrupt register set to 0
+    sync_reset_phase_state();
     if (s_slow_on) {
-        s_slow_t0 = g_tick_ms;
+        s_slow_t0_us = get_hsi_us();
         s_slow_idx = 0xFF;
         s_slow_neg = 0xFF;
         wavegen_slow_apply(0);
@@ -438,6 +532,7 @@ void SysTick_Handler(void)
 {
     uint8_t level;
 
+    g_tick_100us++;
     if (++s_sub_ms >= LOD_TICKS_PER_MS) {
         s_sub_ms = 0;
         g_tick_ms++;
@@ -560,6 +655,7 @@ static void lod_mark_stim_start(void)
     s_max_low_run = 0;
     s_open_cnt = 0;
     s_open_latched = 0;
+    s_contact_ok = 0;
     s_duty_tick = now;
     /* 升压未稳时没有光耦低脉冲。空一个统计窗再加 LOD_BOOST_ARM_MS，这段不切输出。 */
     s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + LOD_BOOST_ARM_MS;
@@ -576,6 +672,8 @@ static void lod_mark_stim_stop(void)
     s_max_low_run = 0;
     s_open_cnt = 0;
     s_open_latched = 0;
+    s_contact_ok = 0;
+    sync_reset_phase_state();
 }
 
 /* GPIO19/GPIO22 配成无上下拉输入。GPIO22 本版不参与判定。 */
@@ -598,10 +696,7 @@ void LOD_Init(void)
     CMSDK_EXTI->RTSR &= ~(1u << EXTI_GPIO19);
     CMSDK_EXTI->FALL_PEND_CLR = (1u << EXTI_GPIO19);
     CMSDK_EXTI->RISE_PEND_CLR = (1u << EXTI_GPIO19);
-    /* 关掉上次比较器试验留下的脱落开关，避免它把输出钳在片内 */
-    CMSDK_ANAC->COMP0_CTRL &= ~(1u << 0);
-    WAVE_GEN_DRVC_BLK5->WAVE_GEN_DRV_CTRL_REG &= ~1u;
-    WAVE_GEN_DRVC_BLK7->WAVE_GEN_DRV_CTRL_REG &= ~1u;
+    /* 4be0880 不写比较器和 Driver C。这里写 CTRL=0 会把电流通路关掉，冷机整场没电流。 */
     SysTick_Config(APB_Clock_Freq / LOD_SAMPLE_HZ);
 }
 
@@ -654,12 +749,21 @@ void LOD_Proc(void)
     g_lead_off_ch2 = 0;
     if (max_run >= lod_low_min_ticks((uint8_t)g_freq)) {
         s_open_cnt = 0;
+        s_contact_ok = 1;
         g_lead_off_ch0 = 0;
         return;
     }
+    if (!s_contact_ok) {
+        return;
+    }
     if (++s_open_cnt >= LOD_OPEN_WINDOWS) {
+#if (LOD_CUT_ENABLE != 0)
         g_lead_off_ch0 = 1;
         lod_cut_output();
+#else
+        (void)lod_cut_output;
+        s_open_cnt = 0;
+#endif
     }
 }
 
@@ -720,6 +824,7 @@ int main(){
 	lod_uplink(0xFF);
 
 	while(1){
+		wavegen_sync_proc();
 		wavegen_slow_proc();
 		LOD_Proc();
 		//Uart_Send(CMSDK_UART1,data,7);
@@ -806,6 +911,12 @@ int main(){
 						Delay_268ms(1);SysHseSet();
 					}
 					
+				}else if(rev_buf[1] == 0x05 && rev_buf[2] == 0x03){//1s crystal sync & phase lock beacon
+					uint8_t sync_seq = rev_buf[3];
+					uint8_t delay_100us = rev_buf[5];
+					s_sync_target_us = g_rx_fin_us + ((uint32_t)delay_100us * 100u);
+					s_sync_pending_seq = sync_seq;
+					s_sync_pending = 1u;
 				}else if(rev_buf[1] == 0x03 && rev_buf[2] == 0x01){
 					send_buf[0]=0xA5;
 				  send_buf[1]=0x0A ;
