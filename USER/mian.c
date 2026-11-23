@@ -372,6 +372,12 @@ static void wavegen_sync_proc(void)
     WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_CTRL_REG = 0;
     WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_HLF_WAVE_PRD_REG = half_us;
     WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_NEG_HLF_WAVE_PRD_REG = half_us;
+    /* 确保 CTRL_REG=0 低电平至少保持 3us (>1MHz 波形时钟 3 个周期)，避免复位脉冲被漏采 */
+    {
+        uint32_t t0 = get_hsi_us();
+        while ((uint32_t)(get_hsi_us() - t0) < 3u) {
+        }
+    }
     WAVE_GEN_DRVA_BLK0->WAVE_GEN_DRV_CTRL_REG = 1;
 }
 
@@ -698,6 +704,10 @@ void LOD_Init(void)
     CMSDK_EXTI->RISE_PEND_CLR = (1u << EXTI_GPIO19);
     /* 4be0880 不写比较器和 Driver C。这里写 CTRL=0 会把电流通路关掉，冷机整场没电流。 */
     SysTick_Config(APB_Clock_Freq / LOD_SAMPLE_HZ);
+    /* SysTick 优先级必须高于 UART1，避免 UART1_Handler 内调用 get_hsi_us() 时
+       SysTick->VAL 已回绕重载而 g_tick_100us 尚未累加造成 100us 阶跃跳变。 */
+    NVIC_SetPriority(SysTick_IRQn, 0);
+    NVIC_SetPriority(UART1_IRQn, 1);
 }
 
 /* 主循环调用。未刺激报 0xFF；已锁存脱落则保持停输出。
