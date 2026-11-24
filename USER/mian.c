@@ -167,6 +167,7 @@ static uint32_t s_sync_last_target_us = 0u;
 static uint8_t  s_sync_pending = 0u;
 static uint8_t  s_sync_pending_seq = 0u;
 static uint32_t s_sync_target_us = 0u;
+static uint8_t  s_sync_outlier_cnt = 0u;
 
 /* 返回片内 HSI/32 基准下的微秒计数（与 WAVE_GEN_DRV_CLK_FREQ_REG=0x20 同源同频） */
 uint32_t get_hsi_us(void)
@@ -185,6 +186,7 @@ static void sync_reset_phase_state(void)
 {
     s_sync_has_prev = 0u;
     s_sync_pending = 0u;
+    s_sync_outlier_cnt = 0u;
 }
 
 void Delay_268ms( uint16_t time_ms )
@@ -323,9 +325,9 @@ static void wavegen_slow_proc(void)
 static void wavegen_sync_proc(void)
 {
     uint32_t now_us;
-    uint32_t dt_us;
     uint8_t hz;
     uint32_t half_us;
+    uint8_t align_ok = 1u;
 
     if (!s_sync_pending) {
         return;
@@ -336,23 +338,55 @@ static void wavegen_sync_proc(void)
     }
     s_sync_pending = 0u;
 
-    /* 1) 若与上一拍连续（间隔 1.000000s），用主控 8MHz 石英晶振校准本片 HSI 真实微秒数 */
-    if (s_sync_has_prev && ((uint8_t)(s_sync_pending_seq - s_sync_last_seq) == 1u)) {
-        dt_us = s_sync_target_us - s_sync_last_target_us;
-        if (dt_us >= 900000u && dt_us <= 1100000u) {
-            if (!s_hsi_calibrated) {
-                s_hsi_us_per_sec = dt_us;
-                s_hsi_calibrated = 1u;
+    /* 1) 若与上一拍连续（允许跨过 1~2 拍单次抖动），用主控 8MHz 石英晶振校准本片 HSI 真实微秒数；
+          已校准后对单拍串口抖动 (>1.5ms) 及主循环延迟 (>1ms) 进行门限过滤，防止污染频率或在非过零点硬复位波形。 */
+    if (s_sync_has_prev) {
+        uint8_t dseq = (uint8_t)(s_sync_pending_seq - s_sync_last_seq);
+        if (dseq >= 1u && dseq <= 3u) {
+            uint32_t avg_dt_us = (s_sync_target_us - s_sync_last_target_us + (dseq >> 1)) / dseq;
+            if (avg_dt_us >= 950000u && avg_dt_us <= 1050000u) {
+                if (!s_hsi_calibrated) {
+                    if (dseq == 1u) {
+                        s_hsi_us_per_sec = avg_dt_us;
+                        s_hsi_calibrated = 1u;
+                        s_sync_outlier_cnt = 0u;
+                    }
+                } else {
+                    uint32_t err_us = (avg_dt_us > s_hsi_us_per_sec)
+                                    ? (avg_dt_us - s_hsi_us_per_sec)
+                                    : (s_hsi_us_per_sec - avg_dt_us);
+                    if (err_us <= 1500u) {
+                        s_hsi_us_per_sec = (s_hsi_us_per_sec * 3u + avg_dt_us + 2u) >> 2;
+                        s_sync_outlier_cnt = 0u;
+                    } else if (++s_sync_outlier_cnt >= 3u) {
+                        /* 连续 3 拍超限视为真实温漂/重基准，重新校准并锁定 */
+                        s_hsi_us_per_sec = avg_dt_us;
+                        s_sync_outlier_cnt = 0u;
+                    } else {
+                        /* 单拍抖动超限：本拍不更新频率、不覆盖上一正常拍基准、不硬切 CTRL_REG */
+                        align_ok = 0u;
+                    }
+                }
             } else {
-                s_hsi_us_per_sec = (s_hsi_us_per_sec * 3u + dt_us + 2u) >> 2;
+                align_ok = 0u;
             }
         }
     }
-    s_sync_last_target_us = s_sync_target_us;
-    s_sync_last_seq = s_sync_pending_seq;
-    s_sync_has_prev = 1u;
+    if (align_ok) {
+        s_sync_last_target_us = s_sync_target_us;
+        s_sync_last_seq = s_sync_pending_seq;
+        s_sync_has_prev = 1u;
+    } else if ((uint8_t)(s_sync_pending_seq - s_sync_last_seq) >= 3u) {
+        /* 连续抖动且累计跨度已达 3 拍仍未恢复：放弃旧基准，从本拍重建 */
+        s_sync_has_prev = 0u;
+        s_sync_outlier_cnt = 0u;
+    }
 
-    if (!g_stim_running) {
+    if (!g_stim_running || !align_ok) {
+        return;
+    }
+    if ((uint32_t)(now_us - s_sync_target_us) > 1000u) {
+        /* 主循环阻塞超过 1ms 才轮询到本拍：跳过本拍硬复位，由已校准频率维持相位 */
         return;
     }
 
