@@ -168,6 +168,16 @@ static uint8_t  s_sync_pending = 0u;
 static uint8_t  s_sync_pending_seq = 0u;
 static uint32_t s_sync_target_us = 0u;
 static uint8_t  s_sync_outlier_cnt = 0u;
+/* STM32 刺激输出期间每 1s 下发 0x05 同步信标; 若 RX 断开导致收不到 STOP 也收不到信标,
+   超时 3.5s 后 ENS001 自主切断输出, 不再依赖单向串口命令。 */
+#define STIM_SYNC_WATCHDOG_MS 3500u
+#define STIM_SYNC_STOP_REP_MS 1000u
+#define STIM_SYNC_STOP_REP_MAX 15u
+static uint32_t s_sync_wdog_tick = 0u;
+static uint8_t  s_sync_stopped = 0u;
+static uint32_t s_sync_stop_rep_tick = 0u;
+static uint8_t  s_sync_stop_rep_cnt = 0u;
+static uint8_t  s_stim_start_seq = 0u;
 
 /* 返回片内 HSI/32 基准下的微秒计数（与 WAVE_GEN_DRV_CLK_FREQ_REG=0x20 同源同频） */
 uint32_t get_hsi_us(void)
@@ -264,12 +274,18 @@ static void stim_power_on(void)
     CMSDK_ANAC->PMU_CTRL = 0x10;
 }
 
+/* 电流波形幅值缩放系数：
+   原 0.6587f 按“满档 20 = 2.0 mA 有效值 (RMS)”标定；
+   对外改以正弦峰峰值 (I_p-p) 定义后，I_RMS = I_p-p / (2 * sqrt(2))，
+   即满档 20 对应 2.0 mA(p-p)（峰值 ±1.0 mA，有效值 0.707 mA）。 */
+#define STIM_WAVE_SCALE_PP  (0.6587f / 2.8284271f)
+
 static void wavegen_slow_apply(uint8_t idx)
 {
     CMSDK_WAVE_GEN_TypeDef *drv = WAVE_GEN_DRVA_BLK0;
     uint8_t neg = (idx >= 64u) ? 1u : 0u;
     uint8_t half = neg ? (uint8_t)(idx - 64u) : idx;
-    int code = (int)((float)sine_slow_data[half] * 0.6587f * (g_current / 20) + 0.5f);
+    int code = (int)((float)sine_slow_data[half] * STIM_WAVE_SCALE_PP * (g_current / 20) + 0.5f);
     int i;
 
     if (code < 0) {
@@ -463,7 +479,7 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
     if (!s_slow_on) {
         for(int i=0; i<64; i++){
             CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
-            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*0.6587f *(g_current/20) + 0.5f );
+            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*STIM_WAVE_SCALE_PP *(g_current/20) + 0.5f );
         }
     }
    
@@ -649,18 +665,23 @@ static uint32_t lod_low_min_ticks(uint8_t freq_hz)
     return t;
 }
 
-/* 主动上报给主控，不再等小程序来查。0xFF=开机待机，1=刺激中因脱落进入待机。
-   主控收到后若蓝牙已连接，把这一帧转给小程序。 */
-static void lod_uplink(uint8_t state)
+static void lod_uplink_seq(uint8_t state, uint8_t seq)
 {
     send_buf[0] = 0xA5;
     send_buf[1] = 0x0A;
     send_buf[2] = 0x02;
     send_buf[3] = state;
-    send_buf[4] = 0;
+    send_buf[4] = (state == 0x02u) ? s_stim_start_seq : seq;
     send_buf[5] = crc8_calc(send_buf, 5);
     send_buf[6] = 0x5A;
     Uart_Send(CMSDK_UART1, send_buf, 7);
+}
+
+/* 主动上报给主控，不再等小程序来查。0xFF=开机待机，1=刺激中因脱落进入待机。
+   主控收到后若蓝牙已连接，把这一帧转给小程序。 */
+static void lod_uplink(uint8_t state)
+{
+    lod_uplink_seq(state, 0u);
 }
 
 /* 脱落时停输出并进入待机，同时上发一次。已经停过就直接返回。 */
@@ -688,6 +709,10 @@ static void lod_mark_stim_start(void)
     uint32_t now = g_tick_ms;
 
     g_stim_running = 1;
+    s_sync_wdog_tick = now;
+    s_sync_stopped = 0u;
+    s_sync_stop_rep_tick = 0u;
+    s_sync_stop_rep_cnt = 0u;
     g_lead_off_ch0 = 0;
     g_lead_off_ch2 = 0;
     s_sample_cnt = 0;
@@ -705,6 +730,9 @@ static void lod_mark_stim_start(void)
 static void lod_mark_stim_stop(void)
 {
     g_stim_running = 0;
+    s_sync_stopped = 0u;
+    s_sync_stop_rep_tick = 0u;
+    s_sync_stop_rep_cnt = 0u;
     g_lead_off_ch0 = 0xFF;
     g_lead_off_ch2 = 0;
     s_sample_cnt = 0;
@@ -811,6 +839,29 @@ void LOD_Proc(void)
     }
 }
 
+static void stim_sync_watchdog_proc(void)
+{
+    if (g_stim_running) {
+        if ((uint32_t)(g_tick_ms - s_sync_wdog_tick) > STIM_SYNC_WATCHDOG_MS) {
+            wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+            lod_mark_stim_stop();
+            s_sync_stopped = 1u;
+            s_sync_stop_rep_tick = g_tick_ms;
+            s_sync_stop_rep_cnt = 1u;
+            lod_uplink(0x02); /* 0x02 = 同步信标超时自停，主动串口上报 */
+        }
+        return;
+    }
+    if ((s_sync_stopped != 0u) &&
+        (s_sync_stop_rep_cnt < STIM_SYNC_STOP_REP_MAX) &&
+        ((uint32_t)(g_tick_ms - s_sync_stop_rep_tick) >= STIM_SYNC_STOP_REP_MS)) {
+        /* 首条自停上报若在串口丢包，周期重报直到主控下发显式 STOP/START 清除或达到上限 */
+        s_sync_stop_rep_tick = g_tick_ms;
+        s_sync_stop_rep_cnt++;
+        lod_uplink(0x02);
+    }
+}
+
 int main(){
 	int count;
 	Delay_268ms(1);
@@ -870,6 +921,7 @@ int main(){
 	while(1){
 		wavegen_sync_proc();
 		wavegen_slow_proc();
+		stim_sync_watchdog_proc();
 		LOD_Proc();
 		//Uart_Send(CMSDK_UART1,data,7);
 		while(rev_fin && rev_len >0){
@@ -882,52 +934,38 @@ int main(){
 					    break;
 				 } 
 		#endif
-			  if(rev_buf[1] == 0x00 && rev_buf[2] == 0x01 && rev_buf[3] == 0x01 ){//start
-				  send_buf[0]=0xA5;
-				  send_buf[1]=0x09 ;
-					send_buf[2]=0x02 ;
-					send_buf[3]=0x00 ;
-					send_buf[4]=0x00 ;
-					send_buf[5]=crc8_calc(send_buf,5) ;
-					send_buf[6]=0x5A ;
-					send_len = 7;
-					
-          for(count = 0 ; count < 200; count++){;}
-						
-					Uart_Send(CMSDK_UART1,send_buf,send_len);
-					wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0,3);
-					lod_mark_stim_start();
-				}else if(rev_buf[1] == 0x00 && rev_buf[2] == 0x01 && rev_buf[3] == 0x02 ){//pause
-				  send_buf[0]=0xA5;
-				  send_buf[1]=0x09 ;
-					send_buf[2]=0x02 ;
-					send_buf[3]=0x00 ;
-					send_buf[4]=0x00 ;
-					send_buf[5]=crc8_calc(send_buf,5) ;
-					send_buf[6]=0x5A ;
-					send_len = 7;
-					
-					for(count = 0 ; count < 200; count++){;}
-						
-					Uart_Send(CMSDK_UART1,send_buf,send_len);		
-          wavegen_Stop(WAVE_GEN_DRVA_BLK0);
-					lod_mark_stim_stop();
-				}else if(rev_buf[1] == 0x00 && rev_buf[2] == 0x01 && rev_buf[3] == 0x00 ){//stop
-				  send_buf[0]=0xA5;
-				  send_buf[1]=0x09 ;
-					send_buf[2]=0x02 ;
-					send_buf[3]=0x00 ;
-					send_buf[4]=0x00 ;
-					send_buf[5]=crc8_calc(send_buf,5) ;
-					send_buf[6]=0x5A ;
-					send_len = 7;
-					
-					for(count = 0 ; count < 200; count++){;}
-						
-					Uart_Send(CMSDK_UART1,send_buf,send_len);		
-          wavegen_Stop(WAVE_GEN_DRVA_BLK0);
-					lod_mark_stim_stop();
-				}else if(rev_buf[1] == 0x02 && rev_buf[2] == 0x03){//set param
+			  if(rev_buf[1] == 0x00 && (rev_buf[2] == 0x01 || rev_buf[2] == 0x02)){
+				  uint8_t act = rev_buf[3];
+				  uint8_t req_seq = (rev_buf[2] >= 0x02) ? rev_buf[4] : 0x00u;
+				  if(act == 0x01){//start
+					  s_stim_start_seq = req_seq;
+					  wavegen_driverA_sine_test(WAVE_GEN_DRVA_BLK0,3);
+					  lod_mark_stim_start();
+				  }else if(act == 0x02){//pause
+					  s_stim_start_seq = 0u;
+					  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+					  lod_mark_stim_stop();
+				  }else if(act == 0x00){//stop
+					  s_stim_start_seq = 0u;
+					  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+					  lod_mark_stim_stop();
+				  }else{
+					  act = 0xFFu;
+				  }
+				  if(act != 0xFFu){
+					  send_buf[0]=0xA5;
+					  send_buf[1]=0x09 ;
+					  send_buf[2]=0x03 ;
+					  send_buf[3]=0x00 ;
+					  send_buf[4]=(uint8_t)(0x80u | act) ;
+					  send_buf[5]=req_seq ;
+					  send_buf[6]=crc8_calc(send_buf,6) ;
+					  send_buf[7]=0x5A ;
+					  send_len = 8;
+					  for(count = 0 ; count < 200; count++){;}
+					  Uart_Send(CMSDK_UART1,send_buf,send_len);
+				  }
+			  }else if(rev_buf[1] == 0x02 && rev_buf[2] == 0x03){//set param
 					g_freq = rev_buf[4];
 					if (g_freq < 1.0f) {
 						g_freq = 1.0f;
@@ -935,6 +973,11 @@ int main(){
 						g_freq = 100.0f;
 					}
 					g_current = rev_buf[3];
+					if (g_current < 1.0f) {
+						g_current = 1.0f;
+					} else if (g_current > 20.0f) {
+						g_current = 20.0f;
+					}
 					send_buf[0]=0xA5;
 				  send_buf[1]=0x09 ;
 					send_buf[2]=0x02 ;
@@ -961,6 +1004,20 @@ int main(){
 					s_sync_target_us = g_rx_fin_us + ((uint32_t)delay_100us * 100u);
 					s_sync_pending_seq = sync_seq;
 					s_sync_pending = 1u;
+					if (g_stim_running) {
+						s_sync_wdog_tick = g_tick_ms;
+					} else if (s_sync_stopped != 0u) {
+						/* 主控仍在发送信标说明尚未收到先前的自停通知，立即重报自停状态 */
+						s_sync_stop_rep_tick = g_tick_ms;
+						lod_uplink(0x02);
+					}
+				}else if(rev_buf[1] == 0x03 && rev_buf[2] == 0x02 && rev_buf[3] == 0x01){
+					/* 状态回读：原样回显请求编号 rev_buf[4]，区分主动开机 0xFF 与 STOP 后回读确认的 0xFF */
+					uint8_t query_seq = rev_buf[4];
+					lod_uplink_seq(g_stim_running ? 0x00u
+					             : (s_sync_stopped ? 0x02u
+					             : (s_open_latched ? 0x01u : 0xFFu)),
+					             query_seq);
 				}else if(rev_buf[1] == 0x03 && rev_buf[2] == 0x01){
 					send_buf[0]=0xA5;
 				  send_buf[1]=0x0A ;
