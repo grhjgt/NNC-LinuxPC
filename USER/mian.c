@@ -154,6 +154,29 @@ static uint8_t s_slow_idx = 0xFF;
 static uint8_t s_slow_neg = 0xFF;
 static uint32_t s_slow_t0_us = 0;
 
+/* 淡入/淡出软启软停参数：
+   - 淡入 2000ms、淡出 1000ms，每 20ms 更新一次包络；
+   - Q10 定点增益 (0..1024)，避免 Cortex-M0 软浮点与除法开销，gain=1024 与原稳态逐点一致；
+   - 主机轮询保护死区 STIM_POLL_DEADTIME_MS 须大于 STIM_RAMP_DOWN_MS + 裕量。 */
+#define STIM_RAMP_UP_MS       2000u
+#define STIM_RAMP_DOWN_MS     1000u
+#define STIM_RAMP_STEP_MS     20u
+#define STIM_RAMP_GAIN_MAX    1024u
+
+#define RAMP_IDLE             0u
+#define RAMP_UP               1u
+#define RAMP_HOLD             2u
+#define RAMP_DOWN             3u
+
+static uint8_t  s_ramp_state = RAMP_IDLE;
+static uint16_t s_ramp_gain = 0u;
+static uint16_t s_ramp_from_gain = 0u;
+static uint32_t s_ramp_start_ms = 0u;
+static uint32_t s_ramp_step_ms = 0u;
+static uint32_t s_ramp_dur_ms = 0u;
+static uint8_t  s_wave_target[64];
+static uint8_t  s_slow_target[64];
+
 /* --------------------------------------------------------------- */
 /*  串口 1s 晶振同步与锁相环 (UART-DPLL: CMD=0x05)                   */
 /*  用主从控 STM32 的 8MHz 石英晶振 1s 信标校准本片 HSI RC 频偏，    */
@@ -280,18 +303,39 @@ static void stim_power_on(void)
    即满档 20 对应 2.0 mA(p-p)（峰值 ±1.0 mA，有效值 0.707 mA）。 */
 #define STIM_WAVE_SCALE_PP  (0.6587f / 2.8284271f)
 
+static void wavegen_build_targets(void)
+{
+    float scale = STIM_WAVE_SCALE_PP * (g_current / 20.0f);
+    int i;
+
+    for (i = 0; i < 64; i++) {
+        int v = (int)((float)sine_data[i] * scale + 0.5f);
+        int sv = (int)((float)sine_slow_data[i] * scale + 0.5f);
+        if (v < 0) {
+            v = 0;
+        } else if (v > 255) {
+            v = 255;
+        }
+        if (sv < 0) {
+            sv = 0;
+        } else if (sv > 255) {
+            sv = 255;
+        }
+        s_wave_target[i] = (uint8_t)v;
+        s_slow_target[i] = (uint8_t)sv;
+    }
+}
+
 static void wavegen_slow_apply(uint8_t idx)
 {
     CMSDK_WAVE_GEN_TypeDef *drv = WAVE_GEN_DRVA_BLK0;
     uint8_t neg = (idx >= 64u) ? 1u : 0u;
     uint8_t half = neg ? (uint8_t)(idx - 64u) : idx;
-    int code = (int)((float)sine_slow_data[half] * STIM_WAVE_SCALE_PP * (g_current / 20) + 0.5f);
+    uint32_t code = ((uint32_t)s_slow_target[half] * (uint32_t)s_ramp_gain + (STIM_RAMP_GAIN_MAX >> 1)) >> 10;
     int i;
 
-    if (code < 0) {
-        code = 0;
-    } else if (code > 255) {
-        code = 255;
+    if (code > 255u) {
+        code = 255u;
     }
     for (i = 0; i < 64; i++) {
         drv->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
@@ -311,6 +355,28 @@ static void wavegen_slow_apply(uint8_t idx)
     }
     drv->WAVE_GEN_DRV_CTRL_REG = 1;
     s_slow_idx = idx;
+}
+
+static void wavegen_apply_gain(uint16_t gain)
+{
+    CMSDK_WAVE_GEN_TypeDef *drv = WAVE_GEN_DRVA_BLK0;
+    int i;
+
+    if (s_slow_on) {
+        if (s_slow_idx < SLOW_STEPS) {
+            wavegen_slow_apply(s_slow_idx);
+        }
+        return;
+    }
+    /* 仅动态更新 64 点幅值查找表，绝不重置 CTRL_REG，避免破坏连续正弦相位 */
+    for (i = 0; i < 64; i++) {
+        uint32_t code = ((uint32_t)s_wave_target[i] * (uint32_t)gain + (STIM_RAMP_GAIN_MAX >> 1)) >> 10;
+        if (code > 255u) {
+            code = 255u;
+        }
+        drv->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
+        drv->WAVE_GEN_DRV_IN_WAVE_REG = code;
+    }
 }
 
 static void wavegen_slow_proc(void)
@@ -398,7 +464,7 @@ static void wavegen_sync_proc(void)
         s_sync_outlier_cnt = 0u;
     }
 
-    if (!g_stim_running || !align_ok) {
+    if (!g_stim_running || !align_ok || (s_ramp_state == RAMP_DOWN)) {
         return;
     }
     if ((uint32_t)(now_us - s_sync_target_us) > 1000u) {
@@ -438,6 +504,20 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
     //puts("\nDRIVER A SINE TEST\n");
 
     stim_power_on();
+    CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0;
+    wavegen_build_targets();
+    s_ramp_from_gain = 0u;
+    s_ramp_start_ms = g_tick_ms;
+    s_ramp_step_ms = s_ramp_start_ms;
+#if (STIM_RAMP_UP_MS > 0u)
+    s_ramp_gain = 0u;
+    s_ramp_dur_ms = STIM_RAMP_UP_MS;
+    s_ramp_state = RAMP_UP;
+#else
+    s_ramp_gain = STIM_RAMP_GAIN_MAX;
+    s_ramp_dur_ms = 0u;
+    s_ramp_state = RAMP_HOLD;
+#endif
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_REST_T_REG = 0x00000000;   //???????
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CLK_FREQ_REG = 0x00000020;
     /* 5–100Hz：半周按校准后的 s_hsi_us_per_sec/(2*Hz) 计算。1–4Hz：短半周当电流保持，点数由 wavegen_slow_proc 写。 */
@@ -477,10 +557,7 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 	CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ISEL_REG=(Current_units&(0x7<<3))>>3; // high 3 bit for units of current
 
     if (!s_slow_on) {
-        for(int i=0; i<64; i++){
-            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_ADDR_REG = i;
-            CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_IN_WAVE_REG = (int)( (float)sine_data[i]*STIM_WAVE_SCALE_PP *(g_current/20) + 0.5f );
-        }
+        wavegen_apply_gain(s_ramp_gain);
     }
    
     CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_ALT_LIM_REG = 0x00000000;//  ????? 
@@ -513,6 +590,10 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
 
 void wavegen_Stop(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA)
 {
+	s_ramp_state = RAMP_IDLE;
+	s_ramp_gain = 0u;
+	s_ramp_from_gain = 0u;
+	s_ramp_dur_ms = 0u;
 	s_slow_on = 0;
 	s_slow_idx = 0xFF;
 	s_slow_neg = 0xFF;
@@ -722,8 +803,8 @@ static void lod_mark_stim_start(void)
     s_open_latched = 0;
     s_contact_ok = 0;
     s_duty_tick = now;
-    /* 升压未稳时没有光耦低脉冲。空一个统计窗再加 LOD_BOOST_ARM_MS，这段不切输出。 */
-    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + LOD_BOOST_ARM_MS;
+    /* 升压未稳及淡入前期没有足够光耦低脉冲，待淡入完成再允许脱落检测。 */
+    s_lod_arm_tick = now + lod_window_ms((uint8_t)g_freq) + LOD_BOOST_ARM_MS + STIM_RAMP_UP_MS;
 }
 
 /* 上位机停刺激。没有光耦电流，不能再报贴合或脱落，状态回到 0xFF，并放开脱落锁存。 */
@@ -781,8 +862,8 @@ void LOD_Proc(void)
     uint32_t n;
     uint32_t max_run;
 
-    /* 没在输出时没有光耦电流，不能报贴合 */
-    if (!g_stim_running) {
+    /* 没在输出或处于淡出收尾期时没有稳定光耦电流，不能判脱落或报贴合 */
+    if (!g_stim_running || (s_ramp_state == RAMP_DOWN)) {
         g_lead_off_ch0 = 0xFF;
         g_lead_off_ch2 = 0;
         return;
@@ -862,6 +943,91 @@ static void stim_sync_watchdog_proc(void)
     }
 }
 
+static void wavegen_start_ramp_down(void)
+{
+#if (STIM_RAMP_DOWN_MS > 0u)
+    uint32_t now;
+    uint32_t dur;
+
+    if (!g_stim_running || (s_ramp_state == RAMP_IDLE)) {
+        wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+        lod_mark_stim_stop();
+        return;
+    }
+    if (s_ramp_state == RAMP_DOWN) {
+        return;
+    }
+    if (s_ramp_gain == 0u) {
+        wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+        lod_mark_stim_stop();
+        return;
+    }
+    now = g_tick_ms;
+    s_ramp_from_gain = s_ramp_gain;
+    dur = ((uint32_t)STIM_RAMP_DOWN_MS * (uint32_t)s_ramp_from_gain + (STIM_RAMP_GAIN_MAX >> 1)) >> 10;
+    if (dur < STIM_RAMP_STEP_MS) {
+        dur = STIM_RAMP_STEP_MS;
+    }
+    s_ramp_dur_ms = dur;
+    s_ramp_start_ms = now;
+    s_ramp_step_ms = now;
+    s_ramp_state = RAMP_DOWN;
+    /* 刷新同步看门狗基准，防止 1.0s 淡出收尾期间收不到 0x05 心跳而误触自停上报 0x02 */
+    s_sync_wdog_tick = now;
+#else
+    wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+    lod_mark_stim_stop();
+#endif
+}
+
+static void wavegen_ramp_proc(void)
+{
+    uint32_t now;
+    uint32_t elapsed;
+    uint16_t new_gain;
+
+    if (!g_stim_running || (s_ramp_state == RAMP_IDLE) || (s_ramp_state == RAMP_HOLD)) {
+        return;
+    }
+    now = g_tick_ms;
+    elapsed = (uint32_t)(now - s_ramp_start_ms);
+
+    if (s_ramp_state == RAMP_UP) {
+        if (elapsed >= s_ramp_dur_ms) {
+            s_ramp_gain = STIM_RAMP_GAIN_MAX;
+            s_ramp_state = RAMP_HOLD;
+            wavegen_apply_gain(s_ramp_gain);
+            return;
+        }
+        if ((uint32_t)(now - s_ramp_step_ms) >= STIM_RAMP_STEP_MS) {
+            s_ramp_step_ms = now;
+            new_gain = (uint16_t)((elapsed * STIM_RAMP_GAIN_MAX) / s_ramp_dur_ms);
+            if (new_gain > STIM_RAMP_GAIN_MAX) {
+                new_gain = STIM_RAMP_GAIN_MAX;
+            }
+            if (new_gain != s_ramp_gain) {
+                s_ramp_gain = new_gain;
+                wavegen_apply_gain(s_ramp_gain);
+            }
+        }
+    } else if (s_ramp_state == RAMP_DOWN) {
+        if (elapsed >= s_ramp_dur_ms) {
+            wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+            lod_mark_stim_stop();
+            return;
+        }
+        if ((uint32_t)(now - s_ramp_step_ms) >= STIM_RAMP_STEP_MS) {
+            uint32_t rem = s_ramp_dur_ms - elapsed;
+            s_ramp_step_ms = now;
+            new_gain = (uint16_t)(((uint32_t)s_ramp_from_gain * rem) / s_ramp_dur_ms);
+            if (new_gain != s_ramp_gain) {
+                s_ramp_gain = new_gain;
+                wavegen_apply_gain(s_ramp_gain);
+            }
+        }
+    }
+}
+
 int main(){
 	int count;
 	Delay_268ms(1);
@@ -919,6 +1085,7 @@ int main(){
 	lod_uplink(0xFF);
 
 	while(1){
+		wavegen_ramp_proc();
 		wavegen_sync_proc();
 		wavegen_slow_proc();
 		stim_sync_watchdog_proc();
@@ -943,12 +1110,21 @@ int main(){
 					  lod_mark_stim_start();
 				  }else if(act == 0x02){//pause
 					  s_stim_start_seq = 0u;
-					  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
-					  lod_mark_stim_stop();
+					  if (g_stim_running && ((s_ramp_state == RAMP_UP) || (s_ramp_state == RAMP_HOLD))) {
+						  wavegen_start_ramp_down();
+					  } else if (s_ramp_state != RAMP_DOWN) {
+						  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+						  lod_mark_stim_stop();
+					  }
 				  }else if(act == 0x00){//stop
 					  s_stim_start_seq = 0u;
-					  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
-					  lod_mark_stim_stop();
+					  if (g_stim_running && ((s_ramp_state == RAMP_UP) || (s_ramp_state == RAMP_HOLD))) {
+						  wavegen_start_ramp_down();
+					  } else {
+						  /* 已在淡出中再收 STOP (如启动前 VerifyStopProto、重发兜底、急停) -> 立即硬停 */
+						  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+						  lod_mark_stim_stop();
+					  }
 				  }else{
 					  act = 0xFFu;
 				  }
