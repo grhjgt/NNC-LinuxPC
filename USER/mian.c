@@ -299,13 +299,13 @@ static void stim_power_on(void)
 
 /* 电流波形幅值缩放系数：
    原 0.6587f 按“满档 20 = 2.0 mA 有效值 (RMS)”标定；
-   对外改以正弦峰峰值 (I_p-p) 定义后，I_RMS = I_p-p / (2 * sqrt(2))，
-   即满档 20 对应 2.0 mA(p-p)（峰值 ±1.0 mA，有效值 0.707 mA）。 */
-#define STIM_WAVE_SCALE_PP  (0.6587f / 2.8284271f)
+   对外改以正弦峰值 (I_peak) 定义后，I_RMS = I_peak / sqrt(2)，
+   即满档 20 对应峰值 ±2.0 mA（峰峰值 4.0 mA(p-p)，有效值 1.414 mA）。 */
+#define STIM_WAVE_SCALE_PEAK  (0.6587f / 1.4142136f)
 
 static void wavegen_build_targets(void)
 {
-    float scale = STIM_WAVE_SCALE_PP * (g_current / 20.0f);
+    float scale = STIM_WAVE_SCALE_PEAK * (g_current / 20.0f);
     int i;
 
     for (i = 0; i < 64; i++) {

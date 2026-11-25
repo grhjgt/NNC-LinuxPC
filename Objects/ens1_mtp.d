@@ -2,12 +2,12 @@
 .\objects\ens1_mtp.o: .\FWLIB\include\ENS1_MTP.h
 .\objects\ens1_mtp.o: .\CORE\INCLUDE\CMSDK_CM0.h
 .\objects\ens1_mtp.o: .\CORE\INCLUDE\core_cm0.h
-.\objects\ens1_mtp.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\ens1_mtp.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\ens1_mtp.o: .\CORE\INCLUDE\core_cmInstr.h
 .\objects\ens1_mtp.o: .\CORE\INCLUDE\core_cmFunc.h
 .\objects\ens1_mtp.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
-.\objects\ens1_mtp.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
-.\objects\ens1_mtp.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\ens1_mtp.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+.\objects\ens1_mtp.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 .\objects\ens1_mtp.o: .\USER\my_header.h
-.\objects\ens1_mtp.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\ens1_mtp.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\ens1_mtp.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\ens1_mtp.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

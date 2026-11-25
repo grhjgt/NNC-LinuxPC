@@ -1,16 +1,16 @@
 .\objects\mian.o: USER\mian.c
 .\objects\mian.o: USER\my_header.h
-.\objects\mian.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\mian.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\mian.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\mian.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 .\objects\mian.o: .\CORE\INCLUDE\CMSDK_CM0.h
 .\objects\mian.o: .\CORE\INCLUDE\core_cm0.h
-.\objects\mian.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\mian.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\mian.o: .\CORE\INCLUDE\core_cmInstr.h
 .\objects\mian.o: .\CORE\INCLUDE\core_cmFunc.h
 .\objects\mian.o: .\CORE\INCLUDE\system_CMSDK_CM0.h
 .\objects\mian.o: .\FWLIB\include\ENS1_MTP.h
-.\objects\mian.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
-.\objects\mian.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\mian.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+.\objects\mian.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 .\objects\mian.o: .\FWLIB\include\ENS1_CLOCK.h
 .\objects\mian.o: .\FWLIB\include\ENS1_ANAC.h
 .\objects\mian.o: .\FWLIB\include\ENS1_GPIO.h
