@@ -326,12 +326,12 @@ static void wavegen_build_targets(void)
     }
 }
 
-static void wavegen_slow_apply(uint8_t idx)
+static void wavegen_slow_apply(uint8_t idx, uint16_t gain)
 {
     CMSDK_WAVE_GEN_TypeDef *drv = WAVE_GEN_DRVA_BLK0;
     uint8_t neg = (idx >= 64u) ? 1u : 0u;
     uint8_t half = neg ? (uint8_t)(idx - 64u) : idx;
-    uint32_t code = ((uint32_t)s_slow_target[half] * (uint32_t)s_ramp_gain + (STIM_RAMP_GAIN_MAX >> 1)) >> 10;
+    uint32_t code = ((uint32_t)s_slow_target[half] * (uint32_t)gain + (STIM_RAMP_GAIN_MAX >> 1)) >> 10;
     int i;
 
     if (code > 255u) {
@@ -364,7 +364,7 @@ static void wavegen_apply_gain(uint16_t gain)
 
     if (s_slow_on) {
         if (s_slow_idx < SLOW_STEPS) {
-            wavegen_slow_apply(s_slow_idx);
+            wavegen_slow_apply(s_slow_idx, gain);
         }
         return;
     }
@@ -400,7 +400,7 @@ static void wavegen_slow_proc(void)
         idx = (uint8_t)(SLOW_STEPS - 1u);
     }
     if (idx != s_slow_idx) {
-        wavegen_slow_apply(idx);
+        wavegen_slow_apply(idx, s_ramp_gain);
     }
 }
 
@@ -419,6 +419,9 @@ static void wavegen_sync_proc(void)
         return;
     }
     s_sync_pending = 0u;
+    if (!g_stim_running || (s_ramp_state == RAMP_DOWN)) {
+        return;
+    }
 
     /* 1) 若与上一拍连续（允许跨过 1~2 拍单次抖动），用主控 8MHz 石英晶振校准本片 HSI 真实微秒数；
           已校准后对单拍串口抖动 (>1.5ms) 及主循环延迟 (>1ms) 进行门限过滤，防止污染频率或在非过零点硬复位波形。 */
@@ -573,7 +576,7 @@ int wavegen_driverA_sine_test(CMSDK_WAVE_GEN_TypeDef *CMSDK_WAVEGEN_DRVA, int un
         s_slow_t0_us = get_hsi_us();
         s_slow_idx = 0xFF;
         s_slow_neg = 0xFF;
-        wavegen_slow_apply(0);
+        wavegen_slow_apply(0, s_ramp_gain);
     } else {
         CMSDK_WAVEGEN_DRVA->WAVE_GEN_DRV_CTRL_REG = 0x00000001; //??? driver
     }
@@ -1125,6 +1128,10 @@ int main(){
 						  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
 						  lod_mark_stim_stop();
 					  }
+				  }else if(act == 0x03){//hard stop
+					  s_stim_start_seq = 0u;
+					  wavegen_Stop(WAVE_GEN_DRVA_BLK0);
+					  lod_mark_stim_stop();
 				  }else{
 					  act = 0xFFu;
 				  }
@@ -1153,6 +1160,10 @@ int main(){
 						g_current = 1.0f;
 					} else if (g_current > 20.0f) {
 						g_current = 20.0f;
+					}
+					if (g_stim_running && (s_ramp_state != RAMP_DOWN)) {
+						wavegen_build_targets();
+						wavegen_apply_gain(s_ramp_gain);
 					}
 					send_buf[0]=0xA5;
 				  send_buf[1]=0x09 ;
